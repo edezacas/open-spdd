@@ -2,7 +2,7 @@
 
 > Generated on [DATE]. Review lines marked ⚠️ before generating code.
 > Golden rule: if something breaks during development, fix this canvas first, then the code.
-> Language: translate all section headings, labels, placeholder text, and body content to the user's configured language (see Step 1.5 in canvas/SKILL.md).
+> Language: translate all section headings, labels, placeholder text, and body content to the language detected from the user.
 
 **Status:** Draft
 
@@ -84,11 +84,11 @@ Define each concrete action and its mechanism (endpoint, command, event, UI acti
 
 Mandatory project conventions for this feature:
 
-- [ ] [Convention 1 — extracted from CLAUDE.md]
+- [ ] [Convention 1 — extracted from CLAUDE.md / AGENTS.md]
 - [ ] [Convention 2]
 - [ ] [Convention 3]
 
-*(If no CLAUDE.md exists, use stack-standard conventions)*
+*(If no CLAUDE.md or AGENTS.md exists, use stack-standard conventions)*
 
 ---
 
