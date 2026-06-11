@@ -20,7 +20,7 @@ If $ARGUMENTS is provided, use that file. Otherwise, list recent canvases:
 
 !`ls -t docs/prompts/SPDD-*.md 2>/dev/null | head -5`
 
-If empty, stop and tell the user to run `/spdd:canvas` first. If multiple exist and no argument was given, ask which one to use.
+If empty, stop and tell the user to run the `spdd-canvas` skill first. If multiple exist and no argument was given, ask which one to use.
 
 ### Step 2 — Read the canvas
 
