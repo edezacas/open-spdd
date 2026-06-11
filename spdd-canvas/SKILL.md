@@ -2,29 +2,29 @@
 name: spdd-canvas
 description: Generate a REASONS canvas for a new feature and save it to docs/prompts/. Use BEFORE writing code. Trigger when the user mentions a new feature, wants to implement something, asks for a canvas, or requests a structured prompt before coding.
 license: Apache-2.0
+compatibility: Works with any agent. Step 7 (SPDD hook installation) requires Claude Code.
 metadata:
   author: edezacas
   version: "1.0"
-allowed-tools: Read Write Edit Bash AskUserQuestion
 ---
 
 ## Today's date
 
-!`date +%Y-%m-%d`
+Run `date +%Y-%m-%d` to get today's date. If you cannot run commands, use today's date from your context.
 
 ## Instructions
 
-Generate a REASONS canvas for this feature: $ARGUMENTS
+Generate a REASONS canvas for the feature the user described.
 
 Follow these steps in order:
 
 ### Step 1 — Guard: require a feature description
 
-If `$ARGUMENTS` is empty or blank, ask the user for a brief feature description before continuing.
+If no feature description was provided, ask the user for a brief description before continuing.
 
 ### Step 1.5 — Detect output language
 
-Read `~/.claude/CLAUDE.md`. Use the configured response language for all document content. If none is configured, use the language of the user's request.
+Use the language detected from the user for all document content.
 
 ### Step 2 — Read the base template
 
@@ -48,7 +48,9 @@ Mark any decision that requires user input with `⚠️ Confirm:` and propose a 
 
 Save to `docs/prompts/SPDD-YYYY-MM-DD-slug.md` (kebab-case slug, today's date). Create the directory if needed.
 
-### Step 7 — Ensure the SPDD hook is present
+### Step 7 — Ensure the SPDD hook is present *(Claude Code only)*
+
+> Skip this step if you are not running as Claude Code.
 
 Check whether `.claude/settings.local.json` already contains the SPDD guard hook:
 

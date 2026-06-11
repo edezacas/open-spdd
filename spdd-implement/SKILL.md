@@ -2,23 +2,23 @@
 name: spdd-implement
 description: Implement a feature from its SPDD canvas. Reads the canvas, checks for unresolved items, implements step by step, and updates the canvas if anything diverges during development. Use when the user wants to start coding a feature that has a SPDD canvas.
 license: Apache-2.0
+compatibility: Works with any agent. Step 4 (SPDD hook installation) requires Claude Code.
 metadata:
   author: edezacas
   version: "1.0"
-allowed-tools: Read Write Edit Bash AskUserQuestion
 ---
 
 ## Instructions
 
 ### Step 0 — Detect output language
 
-Read `~/.claude/CLAUDE.md`. Use the configured response language for all document content. If none is configured, use the language of the user's request.
+Use the language detected from the user for all document content.
 
 ### Step 1 — Locate the canvas
 
-If $ARGUMENTS is provided, use that file. Otherwise, list recent canvases:
+If a canvas filename was provided, use that file. Otherwise, list recent canvases:
 
-!`ls -t docs/prompts/SPDD-*.md 2>/dev/null | head -5`
+List the files in `docs/prompts/` matching `SPDD-*.md`, sorted by date (most recent first).
 
 If empty, stop and tell the user to run the `spdd-canvas` skill first. If multiple exist and no argument was given, ask which one to use.
 
@@ -32,7 +32,9 @@ If any `⚠️ Confirm:` lines exist: stop, list them, and ask the user to confi
 
 Then set `**Status:** Confirmed` in the canvas header before proceeding.
 
-### Step 4 — Ensure the SPDD hook is present
+### Step 4 — Ensure the SPDD hook is present *(Claude Code only)*
+
+> Skip this step if you are not running as Claude Code.
 
 Check whether `.claude/settings.local.json` already contains the SPDD guard hook:
 
