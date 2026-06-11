@@ -5,7 +5,6 @@ license: Apache-2.0
 metadata:
   author: edezacas
   version: "1.0"
-argument-hint: "<brief feature description>"
 allowed-tools: Read Write Edit Bash AskUserQuestion
 ---
 
