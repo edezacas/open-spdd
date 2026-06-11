@@ -1,0 +1,64 @@
+{
+  "skill_name": "spdd-implement",
+  "evals": [
+    {
+      "id": 4,
+      "prompt": "/spdd-implement",
+      "expected_output": "The skill detects unresolved '⚠️ Confirm:' items, stops before writing any code, lists them, and resolves them with the user before continuing.",
+      "setup": "Generate a canvas with /spdd-canvas and leave at least one '⚠️ Confirm:' line unresolved.",
+      "assertions": [
+        "The skill does not execute any Write or Edit on source code before resolving pending items",
+        "The skill explicitly lists every '⚠️ Confirm:' line found",
+        "The canvas is updated with the decisions taken",
+        "The canvas moves to 'Status: Confirmed' before implementation begins"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "/spdd-implement",
+      "expected_output": "With no pending items in the canvas, the skill proceeds without interruptions following the section order: Entities → Structure → Operations → Norms → Safeguards.",
+      "setup": "Generate a canvas with /spdd-canvas and manually resolve all '⚠️ Confirm:' lines.",
+      "assertions": [
+        "The skill does not interrupt execution to ask for confirmations",
+        "The canvas moves to 'Status: Confirmed' before touching source code",
+        "Files are created or edited in the order of the canvas sections"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "/spdd-implement",
+      "expected_output": "When the real code diverges from what the canvas describes, the skill stops, explains the discrepancy with concrete values, and proposes a canvas update before continuing.",
+      "setup": "Generate a resolved canvas and intentionally introduce a discrepancy: change a field name or path in the canvas so it does not match the actual project code.",
+      "assertions": [
+        "The skill stops when it finds the discrepancy instead of continuing silently",
+        "The explanation mentions both the canvas value and the actual value found in the code",
+        "The skill proposes a concrete canvas change before resuming",
+        "Implementation continues after the user confirms"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "/spdd-implement",
+      "expected_output": "After implementation, a docs/features/SLUG.md file exists with business rules, flows, and technical notes listing real file paths — readable by a non-technical person.",
+      "setup": "Generate a resolved canvas for a simple feature.",
+      "assertions": [
+        "The file docs/features/SLUG.md exists after implementation completes",
+        "The file has a business rules section with at least 2 concrete rules",
+        "The file has a flows section describing the feature steps",
+        "The technical notes list real file paths from the project",
+        "The document contains no generic placeholders or unfilled template text"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "/spdd-implement",
+      "expected_output": "When done, the canvas has Status: Implemented with today's date and the project compiles without errors.",
+      "setup": "Generate a resolved canvas for an implementable feature in the project.",
+      "assertions": [
+        "The canvas has 'Status: Implemented' when done",
+        "The canvas contains a '> Implemented: YYYY-MM-DD' line with the correct date",
+        "The project compiles or starts without errors after implementation"
+      ]
+    }
+  ]
+}

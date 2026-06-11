@@ -1,0 +1,40 @@
+{
+  "skill_name": "spdd-canvas",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/spdd-canvas",
+      "expected_output": "The skill stops and asks the user for a feature description. No canvas is generated and no file is written.",
+      "assertions": [
+        "The response contains a question asking for a feature description",
+        "No file was created in docs/prompts/",
+        "No write operation was executed before receiving the user's response"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "/spdd-canvas [describe a simple feature relevant to the project]",
+      "expected_output": "Canvas generated and saved in docs/prompts/ using real entity names, file paths, and technologies from the project — no generic placeholders.",
+      "assertions": [
+        "File saved in docs/prompts/ with a name that includes today's date and a slug of the feature",
+        "The canvas does not contain generic placeholders such as 'src/...', 'YourModel', 'model/...', or 'service/...'",
+        "The canvas references real entities or models from the project by their concrete names",
+        "The canvas includes real file paths from the project (not invented ones)",
+        "At least one '⚠️ Confirm:' line is present",
+        "The canvas header contains 'Status: Draft'"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "/spdd-canvas [describe a simple feature relevant to the project]",
+      "expected_output": "Before modifying .claude/settings.local.json to add the SPDD hook, the skill asks for confirmation. After confirming, the JSON is valid and the hook is not duplicated on subsequent runs.",
+      "setup": "Delete or empty .claude/settings.local.json before running this eval.",
+      "assertions": [
+        "The skill asks the user before modifying .claude/settings.local.json",
+        "After confirming, .claude/settings.local.json contains the 'Edit|Write' matcher with the SPDD command",
+        "The JSON in .claude/settings.local.json is syntactically valid",
+        "Running the skill a second time does not add a duplicate hook"
+      ]
+    }
+  ]
+}
