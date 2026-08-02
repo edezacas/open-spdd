@@ -5,7 +5,7 @@ license: Apache-2.0
 compatibility: Works with any agent. Step 4 (SPDD hook installation) requires Claude Code.
 metadata:
   author: edezacas
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Instructions
@@ -18,7 +18,7 @@ Use the language detected from the user for all document content.
 
 If a canvas filename was provided, use that file. Otherwise, list recent canvases:
 
-List the files in `docs/prompts/` matching `SPDD-*.md`, sorted by date (most recent first).
+List the files in `docs/prompts/` matching `SPDD-*.md`, sorted by filename (most recent first).
 
 If empty, stop and tell the user to run the `spdd-canvas` skill first. If multiple exist and no argument was given, ask which one to use.
 

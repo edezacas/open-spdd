@@ -16,7 +16,7 @@
       "prompt": "/spdd-canvas [describe a simple feature relevant to the project]",
       "expected_output": "Canvas generated and saved in docs/prompts/ using real entity names, file paths, and technologies from the project — no generic placeholders.",
       "assertions": [
-        "File saved in docs/prompts/ with a name that includes today's date and a slug of the feature",
+        "File saved in docs/prompts/ with a name that includes today's date, the time (HHMM), and a slug of the feature",
         "The canvas does not contain generic placeholders such as 'src/...', 'YourModel', 'model/...', or 'service/...'",
         "The canvas references real entities or models from the project by their concrete names",
         "The canvas includes real file paths from the project (not invented ones)",

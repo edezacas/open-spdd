@@ -5,12 +5,12 @@ license: Apache-2.0
 compatibility: Works with any agent. Step 7 (SPDD hook installation) requires Claude Code.
 metadata:
   author: edezacas
-  version: "1.0"
+  version: "1.1"
 ---
 
-## Today's date
+## Today's date and time
 
-Run `date +%Y-%m-%d` to get today's date. If you cannot run commands, use today's date from your context.
+Run `date +%Y-%m-%d-%H%M` to get today's date and time. If you cannot run commands, use today's date and time from your context.
 
 ## Instructions
 
@@ -46,7 +46,7 @@ Mark any decision that requires user input with `⚠️ Confirm:` and propose a 
 
 ### Step 6 — Save the file
 
-Save to `docs/prompts/SPDD-YYYY-MM-DD-slug.md` (kebab-case slug, today's date). Create the directory if needed.
+Save to `docs/prompts/SPDD-YYYY-MM-DD-HHMM-slug.md` (kebab-case slug, today's date and time). Create the directory if needed.
 
 ### Step 7 — Ensure the SPDD hook is present *(Claude Code only)*
 
