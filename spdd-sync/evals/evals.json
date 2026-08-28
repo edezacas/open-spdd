@@ -1,0 +1,47 @@
+{
+  "skill_name": "spdd-sync",
+  "evals": [
+    {
+      "id": 20,
+      "prompt": "/spdd-sync",
+      "expected_output": "A pure, behavior-preserving refactor (e.g. a renamed internal function, an extracted constant) is reflected in spdd/specs/<domain>.md's Structure/Entities/Operations without touching Requirements.",
+      "setup": "Take a domain with an existing spdd/specs/<domain>.md and a verified implementation. Refactor the code in a way that changes shape but not behavior (rename a function, extract a magic value into a named constant), then run spdd-sync.",
+      "assertions": [
+        "spdd/specs/<domain>.md's Structure/Entities/Operations reflect the new names/shape",
+        "The Requirements section (WHEN/THEN scenarios) is byte-for-byte unchanged",
+        "The existing test suite still passes after the sync"
+      ]
+    },
+    {
+      "id": 21,
+      "prompt": "/spdd-sync",
+      "expected_output": "The code change actually alters observable behavior (not just shape). The skill detects this, refuses to update Requirements, and tells the user to use spdd-canvas instead.",
+      "setup": "Take a domain with an existing spdd/specs/<domain>.md. Change the code so it behaves differently than what Requirements describes (e.g. a WHEN/THEN scenario says an error is thrown, but the code no longer throws it), then run spdd-sync.",
+      "assertions": [
+        "The Requirements section of spdd/specs/<domain>.md is not modified",
+        "The response explicitly states this looks like a behavior change and directs the user to spdd-canvas",
+        "No other section of the spec is silently rewritten to match the new behavior"
+      ]
+    },
+    {
+      "id": 22,
+      "prompt": "/spdd-sync",
+      "expected_output": "It's genuinely ambiguous whether a code change is a pure refactor or a behavior change. The skill marks it with '⚠️ Confirm:' in the spec instead of deciding on its own.",
+      "setup": "Take a domain with an existing spec. Make a code change whose behavioral impact is ambiguous (e.g. a validation check was loosened in a way that could be a bugfix or a behavior change), then run spdd-sync.",
+      "assertions": [
+        "At least one '⚠️ Confirm:' line is added to spdd/specs/<domain>.md describing the ambiguity",
+        "No part of Requirements is changed without that confirmation"
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "/spdd-sync",
+      "expected_output": "The inferred scope has no spdd/specs/<domain>.md yet. The skill stops and tells the user to run spdd-canvas first instead of trying to sync.",
+      "setup": "Run spdd-sync in a project (or for a domain) that has no spdd/specs/ file at all.",
+      "assertions": [
+        "No file is created or modified under spdd/specs/",
+        "The response explicitly states this isn't a substitute for the normal spdd-canvas flow"
+      ]
+    }
+  ]
+}

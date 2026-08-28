@@ -1,11 +1,11 @@
 ---
 name: spdd-implement
-description: Implement a feature from its SPDD canvas. Reads the canvas, checks for unresolved items, implements step by step, and updates the canvas if anything diverges during development. Use when the user wants to start coding a feature that has a SPDD canvas.
+description: Implement a feature from a plan produced by spdd-design. Never implements directly from the canvas's Operations. Reads the canvas and the chosen plan, checks for unresolved items and unmet dependencies, implements step by step, and updates the canvas or plan if anything diverges during development. Use when the user wants to start coding a feature that already has a plan.
 license: Apache-2.0
-compatibility: Works with any agent. Step 4 (SPDD hook installation) requires Claude Code.
+compatibility: Works with any agent. Step 5 (SPDD hook installation) requires Claude Code.
 metadata:
   author: edezacas
-  version: "1.1"
+  version: "2.0"
 ---
 
 ## Instructions
@@ -14,25 +14,33 @@ metadata:
 
 Use the language detected from the user for all document content.
 
-### Step 1 — Locate the canvas
+### Step 1 — Locate the change and plan
 
-If a canvas filename was provided, use that file. Otherwise, list recent canvases:
+If a change folder or plan path was provided, use that. Otherwise, list recent changes:
 
-List the files in `docs/prompts/` matching `SPDD-*.md`, sorted by filename (most recent first).
+List the directories in `spdd/changes/` matching `SPDD-*`, sorted by name (most recent first).
 
 If empty, stop and tell the user to run the `spdd-canvas` skill first. If multiple exist and no argument was given, ask which one to use.
 
-### Step 2 — Read the canvas
+Then check for a `plans/` folder inside the chosen change:
+- If it exists, ask (or accept as an argument) which plan to implement.
+- If it doesn't exist, stop and tell the user to run the `spdd-design` skill first — `spdd-implement` always implements from a plan, never directly from the canvas's Operations.
 
-Read the canvas file in full.
+### Step 2 — Read the canvas and plan
 
-### Step 3 — Check for unresolved items
+Read `canvas.md` in full (Requirements, Norms, and Safeguards apply regardless of which plan is being implemented) and read the chosen plan in full — it scopes which Operations, Entities, and Structure paths to touch.
 
-If any `⚠️ Confirm:` lines exist: stop, list them, and ask the user to confirm each one. Replace each with the confirmed value.
+### Step 3 — Check dependencies
 
-Then set `**Status:** Confirmed` in the canvas header before proceeding.
+If the plan being implemented declares `Depends on:` other than `none`, check the status of those plans. If any of them is not at least `Status: Implemented`, warn the user explicitly and ask for confirmation before continuing — implementing out of order may be a deliberate choice, but it must never happen silently.
 
-### Step 4 — Ensure the SPDD hook is present *(Claude Code only)*
+### Step 4 — Check for unresolved items
+
+If any `⚠️ Confirm:` lines exist in the canvas or the chosen plan: stop, list them, and ask the user to confirm each one. Replace each with the confirmed value.
+
+Then set `**Status:** Confirmed` in the canvas (and plan, if any) header before proceeding.
+
+### Step 5 — Ensure the SPDD hook is present *(Claude Code only)*
 
 > Skip this step if you are not running as Claude Code.
 
@@ -50,38 +58,24 @@ If **missing**, ask the user whether to add it. If confirmed, merge the followin
   "hooks": [
     {
       "type": "command",
-      "command": "unresolved=$(grep -rl '⚠️ Confirm:' docs/prompts/SPDD-*.md 2>/dev/null); if [ -n \"$unresolved\" ]; then echo \"SPDD WARNING: unresolved canvas items in: $unresolved — review before editing code.\"; fi"
+      "command": "unresolved=$(grep -rl '⚠️ Confirm:' spdd/changes/*/canvas.md spdd/changes/*/plans/*.md 2>/dev/null); if [ -n \"$unresolved\" ]; then echo \"SPDD WARNING: unresolved canvas/plan items in: $unresolved — review before editing code.\"; fi"
     }
   ]
 }
 ```
 
-### Step 5 — Implement
+### Step 6 — Implement
 
-Follow the canvas sections in order. If you discover the canvas is wrong or incomplete: stop, explain the divergence, propose the canvas update, and resume once the user confirms.
+Follow the Operations in scope (from the plan) in order, respecting Norms. If you discover the canvas or plan is wrong or incomplete: stop, explain the divergence, propose the update, and resume once the user confirms.
 
-### Step 6 — Run tests
+### Step 7 — Run tests
 
 Detect and run the project's test suite. If tests fail, fix the issues before continuing.
 
-### Step 7 — Generate feature documentation
+### Step 8 — Mark as implemented
 
-Save a feature doc to `docs/features/SLUG.md` (same slug as the canvas, no date prefix). Create the directory if needed.
-
-Write it so anyone on the team can use it — developer, product owner, technical writer, or someone preparing a demo or user manual. Structure it in this order:
-
-- **What it does** — one paragraph, plain language, no technical jargon
-- **Business rules** — the logic and constraints that govern this feature
-- **Flows** — step-by-step description of how the feature works: user interactions if it's UI-facing, or system behavior if it's a background job, webhook, integration, etc.
-- **How it connects** — which other features, entities, or services it interacts with
-- **Technical notes** — key files with a one-line description each, and implementation decisions worth preserving
-
-The first three sections should be readable by anyone. The last two are for developers.
-
-### Step 8 — Mark the canvas as implemented
-
-Set `**Status:** Implemented` in the header and add `> Implemented: YYYY-MM-DD` below it.
+Set `**Status:** Implemented` in the header of the plan just implemented and add `> Implemented: YYYY-MM-DD` below it. This is the status other plans' dependency checks (Step 3) look for.
 
 ### Step 9 — Report
 
-List all files created or modified, any canvas sections updated, the test results summary, and the path to the generated feature doc.
+List all files created or modified, any canvas/plan sections updated, and the test results summary. Suggest running `/spdd-verify` on this same plan as the closing step.

@@ -1,0 +1,60 @@
+{
+  "skill_name": "spdd-migrate",
+  "evals": [
+    {
+      "id": 24,
+      "prompt": "/spdd-migrate",
+      "expected_output": "An old Draft canvas with freeform checkboxes is migrated to spdd/changes/SPDD-<slug>/canvas.md with Acceptance Criteria and Safeguards rewritten as WHEN/THEN scenarios, Status still Draft.",
+      "setup": "Create docs/prompts/SPDD-2026-01-01-0900-old-feature.md in the old flat format (checkboxes, no WHEN/THEN), Status: Draft.",
+      "assertions": [
+        "spdd/changes/SPDD-2026-01-01-0900-old-feature/canvas.md exists",
+        "Acceptance Criteria and Safeguards edge cases in the new file are written as WHEN/THEN scenarios",
+        "The new canvas has 'Status: Draft'",
+        "The original docs/prompts/SPDD-2026-01-01-0900-old-feature.md file still exists, unmodified"
+      ]
+    },
+    {
+      "id": 25,
+      "prompt": "/spdd-migrate",
+      "expected_output": "An old canvas with Status: Implemented is migrated keeping that exact status — it is NOT promoted to Verified, not folded into spdd/specs/, and not moved to spdd/archive/.",
+      "setup": "Create docs/prompts/SPDD-2026-01-01-0900-done-feature.md with Status: Implemented.",
+      "assertions": [
+        "spdd/changes/SPDD-2026-01-01-0900-done-feature/canvas.md exists with 'Status: Implemented'",
+        "No file is created under spdd/specs/",
+        "No folder is created under spdd/archive/",
+        "The report mentions the user can run spdd-verify on it when ready"
+      ]
+    },
+    {
+      "id": 26,
+      "prompt": "/spdd-migrate",
+      "expected_output": "Running the skill a second time after a successful migration does not duplicate or re-process already-migrated canvases.",
+      "setup": "Run spdd-migrate once successfully on a project with at least one old canvas, then run it again without changing anything.",
+      "assertions": [
+        "No duplicate folders are created under spdd/changes/ or spdd/archive/",
+        "The second run's report lists the canvas as already migrated / skipped, not as newly migrated"
+      ]
+    },
+    {
+      "id": 27,
+      "prompt": "/spdd-migrate",
+      "expected_output": "A hook in .claude/settings.local.json still greps docs/prompts/SPDD-*.md. The skill rewrites it to the current spdd/changes/*/canvas.md + plans/*.md pattern.",
+      "setup": "Set .claude/settings.local.json's SPDD hook command to the old 'grep -rl ... docs/prompts/SPDD-*.md' form, and have at least one old canvas to migrate.",
+      "assertions": [
+        "After running, the hook command in .claude/settings.local.json references spdd/changes/*/canvas.md and spdd/changes/*/plans/*.md",
+        "The old docs/prompts/ reference no longer appears in the hook command",
+        "The JSON in .claude/settings.local.json is still syntactically valid"
+      ]
+    },
+    {
+      "id": 28,
+      "prompt": "/spdd-migrate",
+      "expected_output": "There is no docs/prompts/ folder at all. The skill stops cleanly and says there's nothing to migrate, without creating any spdd/ folders.",
+      "setup": "Run spdd-migrate in a project with no docs/prompts/ directory.",
+      "assertions": [
+        "The response states there is nothing to migrate",
+        "No spdd/ directory is created as a side effect"
+      ]
+    }
+  ]
+}
