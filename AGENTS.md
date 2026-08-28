@@ -1,7 +1,7 @@
 # open-spdd
 
 ## Overview
-Structured Prompt-Driven Development (SPDD) skills. Each skill is a directory with a `SKILL.md` file following the agentskills.io format. Split out from [edezacas/agent-skills](https://github.com/edezacas/agent-skills), which keeps the generic, SPDD-unrelated skills.
+Structured Prompt-Driven Development (SPDD) skills. Each skill is a directory with a `SKILL.md` file following the agentskills.io format.
 
 ## Stack
 - Skills: Markdown (`SKILL.md`) — no build step, agentskills.io format

@@ -1,7 +1,7 @@
 # open-spdd
 
 ## Overview
-Structured Prompt-Driven Development (SPDD) skills for Claude Code. Provides automatic and slash-command skills loaded via symlinks into `~/.claude/skills/`. Split out from [edezacas/agent-skills](https://github.com/edezacas/agent-skills), which keeps the generic, SPDD-unrelated skills.
+Structured Prompt-Driven Development (SPDD) skills for Claude Code. Provides automatic and slash-command skills loaded via symlinks into `~/.claude/skills/`.
 
 ## Stack
 - Skills: Markdown (`SKILL.md`) — no build step, agentskills.io format
