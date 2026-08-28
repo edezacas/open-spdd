@@ -1,0 +1,70 @@
+{
+  "skill_name": "spdd-verify",
+  "evals": [
+    {
+      "id": 15,
+      "prompt": "/spdd-verify",
+      "expected_output": "One Operation from the canvas/plan was never implemented. The skill detects it, reports it as a concrete gap, and does not mark the scope as Verified.",
+      "setup": "Implement a feature but skip one Operation listed in the canvas, then run spdd-implement's Step 8 to mark it Implemented anyway.",
+      "assertions": [
+        "The report explicitly names the missing Operation",
+        "The plan or canvas is not marked 'Status: Verified'",
+        "Nothing is moved to spdd/archive/ and spdd/specs/ is not modified"
+      ]
+    },
+    {
+      "id": 16,
+      "prompt": "/spdd-verify",
+      "expected_output": "A Safeguards edge case has no existing test covering it. The skill writes and runs a targeted test for that exact scenario.",
+      "setup": "Implement a feature whose Safeguards section lists an edge case (e.g. related entity does not exist) with no corresponding test in the codebase.",
+      "assertions": [
+        "A new test is written that targets the specific WHEN/THEN scenario from Safeguards",
+        "The new test is actually executed as part of verification",
+        "The report lists which Safeguards scenarios got a new test versus which were already covered"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "/spdd-verify",
+      "expected_output": "A legacy change migrated via spdd-migrate has no plans/ folder (spdd-implement now always requires one for new changes, but migrated changes predate that rule) and everything passes. The skill marks Status: Verified, folds the canvas into spdd/specs/<domain>.md, and moves the whole change folder to spdd/archive/.",
+      "setup": "Simulate a spdd-migrate result: place a canvas.md directly under spdd/changes/SPDD-slug/ with 'Status: Implemented' and no plans/ folder, with all Operations correctly implemented and tested.",
+      "assertions": [
+        "canvas.md has 'Status: Verified'",
+        "spdd/specs/<domain>.md exists and contains the feature's Requirements/Operations after verification",
+        "The change folder no longer exists under spdd/changes/",
+        "The change folder now exists under spdd/archive/"
+      ]
+    },
+    {
+      "id": 18,
+      "prompt": "/spdd-verify plan-01",
+      "expected_output": "A change has two plans; plan-01 passes verification but plan-02 is not yet implemented. The skill marks plan-01 as Verified but does NOT fold anything into spdd/specs/ or archive the change, since plan-02 is still pending.",
+      "setup": "Generate a canvas, split it into plan-01 and plan-02 with spdd-design, implement and verify only plan-01.",
+      "assertions": [
+        "plan-01.md has 'Status: Verified'",
+        "No changes are made to any file under spdd/specs/",
+        "The change folder remains under spdd/changes/, not spdd/archive/"
+      ]
+    },
+    {
+      "id": 19,
+      "prompt": "/spdd-verify",
+      "expected_output": "A Norm from the canvas (e.g. a stated project convention) was not followed in the implementation. The skill detects it, reports the concrete violation, and does not mark the scope as Verified.",
+      "setup": "Implement a feature that violates a Norm explicitly listed in the canvas (e.g. wrong file naming convention, missing required pattern).",
+      "assertions": [
+        "The report names the specific Norm violated and where",
+        "The plan or canvas is not marked 'Status: Verified'"
+      ]
+    },
+    {
+      "id": 30,
+      "prompt": "/spdd-verify",
+      "expected_output": "The target spdd/specs/<domain>.md already lists an Entity that this change's canvas also lists (same name, no NEW/MODIFIED marker involved since Entities don't carry one). Folding back updates that Entity's row in place instead of adding a duplicate row.",
+      "setup": "Verify a change whose canvas Entities section includes an entity with the same name as one already present in spdd/specs/<domain>.md.",
+      "assertions": [
+        "spdd/specs/<domain>.md's Entities table has exactly one row for that entity name after folding",
+        "The row reflects the current (possibly updated) notes/path, not a stale duplicate of the old one"
+      ]
+    }
+  ]
+}

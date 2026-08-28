@@ -1,0 +1,62 @@
+{
+  "skill_name": "spdd-design",
+  "evals": [
+    {
+      "id": 11,
+      "prompt": "/spdd-design",
+      "expected_output": "For a small, non-separable feature (everything funnels through one shared module), the skill emits a single plan covering the whole canvas instead of forcing a split.",
+      "setup": "Generate a canvas with /spdd-canvas for a small feature where all Operations touch the same file/module.",
+      "assertions": [
+        "Exactly one file is created under plans/",
+        "The plan's Operations cover the full canvas, not a subset",
+        "The plan's 'Depends on:' field is 'none'",
+        "The plan file's header links back to ../canvas.md",
+        "The report explains why the work was kept as a single plan"
+      ]
+    },
+    {
+      "id": 12,
+      "prompt": "/spdd-design",
+      "expected_output": "For a feature whose Operations clearly belong to two independent modules with no file overlap, the skill produces two plans with 'Depends on: none' on both.",
+      "setup": "Generate a canvas for a feature with two clearly separable concerns (e.g. a new entity plus an unrelated notification integration).",
+      "assertions": [
+        "Two files are created under plans/",
+        "Each plan lists a disjoint subset of Structure paths",
+        "Both plans declare 'Depends on: none'",
+        "The report shows the dependency graph with no edges between the two plans"
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "/spdd-design",
+      "expected_output": "For a feature where part B genuinely needs a field or entity introduced by part A, the skill produces plans where plan B declares 'Depends on: plan-01' (or the correct id).",
+      "setup": "Generate a canvas for a feature where one Operation set depends on an Entity/field only introduced by another Operation set.",
+      "assertions": [
+        "At least one plan has a non-'none' 'Depends on:' field",
+        "The dependency referenced actually exists as another plan id",
+        "The report's dependency graph reflects this edge"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "/spdd-design",
+      "expected_output": "When two otherwise-independent plans both need to edit the same shared file (e.g. a central router or providers registry), both plans list it under 'Shared touchpoints:'.",
+      "setup": "Generate a canvas for a feature where two separable parts both need to register something in the same central file.",
+      "assertions": [
+        "The shared file appears under 'Shared touchpoints:' in both plans that touch it",
+        "The plans are still otherwise treated as independent (no forced 'Depends on' just because of the shared touchpoint)"
+      ]
+    },
+    {
+      "id": 29,
+      "prompt": "/spdd-design",
+      "expected_output": "A plans/ folder already exists with a plan whose Status is Implemented. Running spdd-design again does not silently overwrite it — the skill warns explicitly and requires confirmation before touching anything.",
+      "setup": "Run spdd-design once to produce plan-01, mark plan-01 'Status: Implemented', then run spdd-design again on the same change without confirming anything.",
+      "assertions": [
+        "The skill does not overwrite plan-01.md before the user responds",
+        "The response explicitly warns that plan-01 has progress (Implemented) that would be discarded",
+        "plan-01.md's content and Status are unchanged unless the user explicitly confirmed an overwrite"
+      ]
+    }
+  ]
+}
