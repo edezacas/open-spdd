@@ -25,12 +25,12 @@
     {
       "id": 33,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "The config file exists but one phase has an invalid model value. The skill treats only that value as absent, re-asks for that phase alone via AskUserQuestion, and leaves the other five untouched.",
-      "setup": "Create ~/.claude/spdd/config.json with a valid model for five phases and an invalid value (e.g. \"gpt-5\") for one phase (e.g. canvas).",
+      "expected_output": "The config file exists but one phase has an empty/missing model value. The skill treats only that value as absent, re-asks for that phase alone via AskUserQuestion, and leaves the other five untouched. A non-empty free-text identifier (even one that isn't opus/sonnet/haiku/fable, e.g. a provider-qualified id for a non-Claude-Code host) is accepted as-is and never treated as invalid.",
+      "setup": "Create ~/.claude/spdd/config.json with a valid model for five phases and an empty string (or missing key) for one phase (e.g. canvas).",
       "assertions": [
-        "AskUserQuestion is called only for the phase with the invalid value, not for the other five",
+        "AskUserQuestion is called only for the phase with the empty/missing value, not for the other five",
         "The five already-valid phases in ~/.claude/spdd/config.json are unchanged after the run",
-        "The corrected phase's value is one of opus/sonnet/haiku/fable"
+        "The corrected phase's value is a non-empty string"
       ]
     },
     {
