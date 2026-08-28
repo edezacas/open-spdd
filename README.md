@@ -100,4 +100,4 @@ Skills follow the agentskills.io format (`SKILL.md` + standard frontmatter). Pla
 
 ## License
 
-[MIT](LICENSE)
+Code in this repository is licensed under [Apache-2.0](LICENSE)
