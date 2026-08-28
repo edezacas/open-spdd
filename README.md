@@ -2,8 +2,6 @@
 
 Structured Prompt-Driven Development (SPDD) skills in the [agentskills.io](https://agentskills.io) format. Work with Claude Code, OpenAI Codex, VS Code Copilot, and any compatible agent.
 
-> Split out from [edezacas/agent-skills](https://github.com/edezacas/agent-skills), which keeps `angular-conventions` and `init-project`.
-
 ## Skills
 
 | Skill | Trigger | Description |
@@ -99,10 +97,6 @@ Compares the current code against `spdd/specs/<domain>.md` and updates Entities/
 ## Other agents
 
 Skills follow the agentskills.io format (`SKILL.md` + standard frontmatter). Place or symlink skill folders into `.agents/skills/` and any compatible agent discovers them automatically. For agents without native support (Cursor, Windsurf), paste the `SKILL.md` contents into the agent's rules file.
-
-## Related
-
-[agent-skills](https://github.com/edezacas/agent-skills) — the general-purpose skills (`angular-conventions`, `init-project`) this repo was split out from.
 
 ## License
 
