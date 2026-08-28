@@ -1,8 +1,9 @@
 ---
 name: spdd-canvas
-description: Generate a REASONS canvas for a new feature and save it to spdd/changes/. Use BEFORE writing code. Trigger when the user mentions a new feature, wants to implement something, asks for a canvas, or requests a structured prompt before coding.
+description: Generate a REASONS canvas for a new feature and save it to spdd/changes/. Use BEFORE writing code. Invoked manually via /spdd-canvas, or delegated by spdd-agent as the first phase of its automated flow — does not auto-trigger on its own.
 license: Apache-2.0
 compatibility: Works with any agent. Step 10 (SPDD hook installation) requires Claude Code.
+allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
   version: "2.0"

@@ -1,7 +1,7 @@
 # open-spdd
 
 ## Overview
-Structured Prompt-Driven Development (SPDD) skills for Claude Code. Provides automatic and slash-command skills loaded via symlinks into `~/.claude/skills/`.
+Structured Prompt-Driven Development (SPDD) skills for Claude Code. Provides automatic and slash-command skills loaded via symlinks into `~/.claude/skills/`. `spdd-agent` orchestrates the full canvas → design → implement → verify flow from a single feature description; there is no `.claude/agents/*.md` layer — orchestration is 100% inside `spdd-agent/SKILL.md`, which asks the host for an ad-hoc subagent (Claude Code: the `Agent` tool) per phase instead of relying on any pre-registered agent file.
 
 ## Stack
 - Skills: Markdown (`SKILL.md`) — no build step, agentskills.io format
@@ -14,6 +14,8 @@ To run evals, load the `evals.json`, execute each prompt against your project (w
 
 ## Structure
 ```
+spdd-agent/SKILL.md                   # orchestrates canvas → design → implement → verify from one feature description
+spdd-agent/evals/evals.json           # evals 31–38: config request, bootstrap, invalid-config repair, never-block rule, checkpoint gate, dependency order, divergence reopen, inline fallback
 spdd-canvas/SKILL.md                  # REASONS canvas generator — /spdd-canvas
 spdd-canvas/assets/template-reasons.md
 spdd-canvas/evals/evals.json          # evals 1–3, 9–10: guard, generation quality, hook, applicability guard, spec read
@@ -39,30 +41,24 @@ evals/workspace/                      # gitignored — local eval results go her
 
 ## Claude Code Integration
 
+Tool permissions are declared per skill via `allowed-tools:` in its own `SKILL.md` frontmatter, not documented separately here — that keeps them portable to any agentskills.io host instead of living only in this Claude Code-specific file.
+
 ### Auto-triggers
 
 | Skill | When to activate |
 |-------|-----------------|
-| `spdd-canvas` | User mentions a new feature, asks for a canvas, or requests a structured prompt before coding |
-| `spdd-design` | Required step after every `spdd-canvas` run, before `spdd-implement`; decides whether the canvas needs one plan or several |
-| `spdd-implement` | User wants to start coding a feature that already has a plan from `spdd-design` |
-| `spdd-verify` | User wants to verify/review an implementation against its canvas or plan, typically right after `spdd-implement` |
-| `spdd-sync` | User refactored code that already has a living spec, outside the SPDD flow, and the spec no longer matches the code's shape |
-| `spdd-migrate` | Project still has canvases under the old `docs/prompts/` layout and needs a one-time move to `spdd/` |
-
-### Tool permissions per skill
-
-| Skill | Tools |
-|-------|-------|
-| `spdd-canvas` | Read, Write, Edit, Bash, AskUserQuestion |
-| `spdd-design` | Read, Write, Edit, Bash, AskUserQuestion |
-| `spdd-implement` | Read, Write, Edit, Bash, AskUserQuestion |
-| `spdd-verify` | Read, Write, Edit, Bash, AskUserQuestion |
-| `spdd-sync` | Read, Write, Edit, Bash, AskUserQuestion |
-| `spdd-migrate` | Read, Write, Edit, Bash, AskUserQuestion |
+| `spdd-agent` | User describes a new feature in plain language, without naming a specific `/spdd-*` command — the only skill that auto-triggers the canvas → design → implement → verify flow |
+| `spdd-canvas` | Never auto-triggers on its own. Invoked manually via `/spdd-canvas`, or delegated by `spdd-agent` as the first phase of its flow |
+| `spdd-design` | Never auto-triggers on its own. Invoked manually via `/spdd-design`, or delegated by `spdd-agent`, after a canvas is confirmed |
+| `spdd-implement` | Never auto-triggers on its own. Invoked manually via `/spdd-implement`, or delegated by `spdd-agent`, once a plan exists |
+| `spdd-verify` | Never auto-triggers on its own. Invoked manually via `/spdd-verify`, or delegated by `spdd-agent`, once implementation is done |
+| `spdd-sync` | User refactored code that already has a living spec, outside the SPDD flow, and the spec no longer matches the code's shape — auto-triggers independently, same as today |
+| `spdd-migrate` | Project still has canvases under the old `docs/prompts/` layout and needs a one-time move to `spdd/` — auto-triggers independently, same as today |
 
 ### SPDD guard hook
 
 Configured in the *target* project's `.claude/settings.local.json`, not in this repo. Runs before every `Edit` or `Write` and warns if any canvas or plan under `spdd/changes/` has unresolved `⚠️ Confirm:` items.
 
 To install it in a new project, invoke `spdd-canvas`, `spdd-implement`, or `spdd-verify` — all three offer to add it automatically. `spdd-design` doesn't check or install it — by the time it runs, `spdd-canvas` has already offered it. `spdd-sync` never touches `spdd/changes/`, so it doesn't install or check this hook either. `spdd-migrate` rewrites an existing hook that still points at the old `docs/prompts/` path, but doesn't install one from scratch.
+
+When a phase runs as a background subagent under `spdd-agent`, it never installs the hook itself — installing it is a side-effect action, and a background subagent has no `AskUserQuestion` to confirm it with. It leaves a `⚠️ Confirm:` note instead; `spdd-agent`'s foreground checkpoint gate is what actually asks the user and installs it.

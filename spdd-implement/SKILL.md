@@ -1,8 +1,9 @@
 ---
 name: spdd-implement
-description: Implement a feature from a plan produced by spdd-design. Never implements directly from the canvas's Operations. Reads the canvas and the chosen plan, checks for unresolved items and unmet dependencies, implements step by step, and updates the canvas or plan if anything diverges during development. Use when the user wants to start coding a feature that already has a plan.
+description: Implement a feature from a plan produced by spdd-design. Never implements directly from the canvas's Operations. Reads the canvas and the chosen plan, checks for unresolved items and unmet dependencies, implements step by step, and updates the canvas or plan if anything diverges during development. Invoked manually via /spdd-implement, or delegated by spdd-agent — does not auto-trigger on its own.
 license: Apache-2.0
 compatibility: Works with any agent. Step 5 (SPDD hook installation) requires Claude Code.
+allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
   version: "2.0"

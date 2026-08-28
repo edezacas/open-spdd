@@ -2,7 +2,7 @@
 name: spdd-sync
 description: Sync a domain's living spec (spdd/specs/<domain>.md) to match code that was refactored outside the SPDD flow, without changing what it says about observable behavior. Use after a behavior-preserving refactor (rename, extract constant, restructure files) on code that already has a spec, when the spec no longer matches the code's current shape.
 license: Apache-2.0
-compatibility: Works with any agent.
+allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
   version: "1.0"

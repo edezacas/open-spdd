@@ -2,10 +2,23 @@
 
 Structured Prompt-Driven Development (SPDD) skills in the [agentskills.io](https://agentskills.io) format. Work with Claude Code, OpenAI Codex, VS Code Copilot, and any compatible agent.
 
+## Why
+
+AI coding agents are good at writing code and bad at remembering what the system is *supposed* to do. Without a stable source of truth, every session re-derives intent from scratch, specs live only in chat history, and "add a small feature" can quietly change behavior nobody asked to change.
+
+SPDD fixes this by making the agent write down its understanding of a feature — as concrete `WHEN/THEN` scenarios, not prose — *before* touching code, and by keeping that understanding around after the code ships:
+
+- **Ambiguity surfaces before code, not after.** Every canvas marks unclear decisions with `⚠️ Confirm:` instead of guessing silently — you review a handful of bullet points, not a diff you have to reverse-engineer.
+- **A living spec, not stale docs.** `spdd-verify` folds every shipped feature into `spdd/specs/<domain>.md`. It's what the next canvas reads to avoid contradicting what's already there, and what `spdd-sync` keeps honest when code gets refactored outside the flow.
+- **Plans can run in parallel.** `spdd-design` splits independent work into separate plans with explicit `Depends on:` and `Shared touchpoints:` — safe to hand to different agents or people without stepping on each other.
+- **Automation that still asks.** `spdd-agent` runs the whole canvas → design → implement → verify flow from one plain-language description, but every `⚠️ Confirm:` and every side-effecting action (installing a hook, writing config) still pauses for a real decision — it speeds up the boring parts, not the judgment calls.
+- **No vendor lock-in.** Every skill is a plain `SKILL.md` in the agentskills.io format — no Claude Code-only agent files.
+
 ## Skills
 
 | Skill | Trigger | Description |
 |---|---|---|
+| `spdd-agent` | Auto (plain feature description) or `/spdd-agent` | Orchestrates canvas → design → implement → verify from a single feature description, with a checkpoint on every `⚠️ Confirm:` |
 | `spdd-canvas` | `/spdd-canvas` | Generates a REASONS canvas before writing code |
 | `spdd-design` | `/spdd-design` | Splits a canvas into one or more independent implementation plans |
 | `spdd-implement` | `/spdd-implement` | Implements a feature from a plan produced by `spdd-design` |
@@ -27,6 +40,7 @@ Restart Claude Code to pick up the new skills.
 ```bash
 git clone git@github.com:edezacas/open-spdd.git ~/projects/open-spdd
 mkdir -p ~/.claude/skills
+ln -s ~/projects/open-spdd/spdd-agent ~/.claude/skills/spdd-agent
 ln -s ~/projects/open-spdd/spdd-canvas ~/.claude/skills/spdd-canvas
 ln -s ~/projects/open-spdd/spdd-design ~/.claude/skills/spdd-design
 ln -s ~/projects/open-spdd/spdd-implement ~/.claude/skills/spdd-implement
@@ -59,6 +73,14 @@ flowchart TD
     verify --> archive
     specs -.-> sync -. updates .-> specs
 ```
+
+Describe the feature in plain language and `spdd-agent` runs the whole flow below for you, pausing on every `⚠️ Confirm:` so you can decide instead of it guessing:
+
+```
+hay que implementar la sincronización de actividades con Google Calendar
+```
+
+Or drive each phase yourself — `spdd-agent` doesn't replace the slash commands, it's an additional way in:
 
 ```
 /spdd-canvas magic link authentication

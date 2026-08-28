@@ -1,8 +1,8 @@
 ---
 name: spdd-design
-description: Split an existing SPDD canvas into one or more independent implementation plans — always run after spdd-canvas and before spdd-implement, which requires a plan to exist. Deciding whether the work needs one plan or several is part of this skill.
+description: Split an existing SPDD canvas into one or more independent implementation plans, run after spdd-canvas and before spdd-implement, which requires a plan to exist. Deciding whether the work needs one plan or several is part of this skill. Invoked manually via /spdd-design, or delegated by spdd-agent — does not auto-trigger on its own.
 license: Apache-2.0
-compatibility: Works with any agent.
+allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
   version: "1.0"

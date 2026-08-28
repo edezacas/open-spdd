@@ -1,0 +1,91 @@
+{
+  "skill_name": "spdd-agent",
+  "evals": [
+    {
+      "id": 31,
+      "prompt": "usa spdd-agent para ver qué modelo tiene configurado cada fase",
+      "expected_output": "The skill classifies this as a config request (Step 0), reports the six current phase models (bootstrapping the config first if it doesn't exist yet), and stops — it never starts the feature flow.",
+      "assertions": [
+        "The response lists a model for all six phases: canvas, design, implement, verify, sync, migrate",
+        "No file is created under spdd/changes/",
+        "No canvas/design/implement/verify subagent is launched"
+      ]
+    },
+    {
+      "id": 32,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "On first run with no existing config, the skill resolves the model for all six phases via AskUserQuestion (grouped into 1-2 calls) and writes ~/.claude/spdd/config.json before touching the feature request at all.",
+      "setup": "Ensure ~/.claude/spdd/config.json does not exist before running.",
+      "assertions": [
+        "~/.claude/spdd/config.json exists after the run, with all six phases set to one of opus/sonnet/haiku/fable",
+        "The model selection is resolved via AskUserQuestion before any file is written under spdd/changes/",
+        "The canvas phase (and everything after it) only starts once the config file exists"
+      ]
+    },
+    {
+      "id": 33,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "The config file exists but one phase has an invalid model value. The skill treats only that value as absent, re-asks for that phase alone via AskUserQuestion, and leaves the other five untouched.",
+      "setup": "Create ~/.claude/spdd/config.json with a valid model for five phases and an invalid value (e.g. \"gpt-5\") for one phase (e.g. canvas).",
+      "assertions": [
+        "AskUserQuestion is called only for the phase with the invalid value, not for the other five",
+        "The five already-valid phases in ~/.claude/spdd/config.json are unchanged after the run",
+        "The corrected phase's value is one of opus/sonnet/haiku/fable"
+      ]
+    },
+    {
+      "id": 34,
+      "prompt": "hay que implementar una función que calcule el descuento aplicable a un pedido según su importe, sin que existan reglas de descuento documentadas todavía",
+      "expected_output": "The canvas phase runs as a background subagent with no AskUserQuestion available. It never blocks: it takes the suggested default for the undocumented discount-rule decision and records it as a '⚠️ Confirm:' line, and it does not install the SPDD guard hook (a side-effect action) if missing, leaving that as a separate '⚠️ Confirm:' instead.",
+      "setup": "Ensure ~/.claude/spdd/config.json already has valid values for all six phases (skip bootstrap), and the target project has no .claude/settings.local.json.",
+      "assertions": [
+        "canvas.md is written and contains at least one '⚠️ Confirm:' line for the undocumented discount-rule decision",
+        ".claude/settings.local.json is not created or modified during the canvas phase",
+        "canvas.md contains a '⚠️ Confirm:' line noting the SPDD hook was not installed"
+      ]
+    },
+    {
+      "id": 35,
+      "prompt": "hay que implementar una función que calcule el descuento aplicable a un pedido según su importe, sin que existan reglas de descuento documentadas todavía",
+      "expected_output": "Once the canvas is saved with unresolved '⚠️ Confirm:' lines, the skill does not launch the design phase until every one of them has been resolved via a real, foreground AskUserQuestion call. canvas.md ends up with 'Status: Confirmed' and zero '⚠️ Confirm:' lines before design starts.",
+      "setup": "Same as eval 34 — a canvas with two or more unresolved '⚠️ Confirm:' lines.",
+      "assertions": [
+        "The design phase is not launched while any '⚠️ Confirm:' line remains in canvas.md",
+        "Every '⚠️ Confirm:' line present is asked about via AskUserQuestion — none is silently defaulted or dropped",
+        "canvas.md has 'Status: Confirmed' and zero '⚠️ Confirm:' lines before the design phase begins"
+      ]
+    },
+    {
+      "id": 36,
+      "prompt": "hay que implementar [feature with two parts, where part B needs a field/entity only introduced by part A]",
+      "expected_output": "The design phase produces plan-01 and plan-02 with plan-02 declaring 'Depends on: plan-01'. The skill launches plan-01's implement phase first, waits for it to reach 'Status: Implemented', and only then launches plan-02's implement phase.",
+      "setup": "Run through canvas and design so that plan-02 legitimately depends on plan-01 (mirrors spdd-design eval 13's setup).",
+      "assertions": [
+        "plan-01 reaches 'Status: Implemented' before plan-02's implement phase is launched",
+        "plan-02's implement phase is never launched while plan-01 is not yet 'Status: Implemented'"
+      ]
+    },
+    {
+      "id": 37,
+      "prompt": "hay que implementar [a feature already carried through canvas, design, and implement, where the implementation ends up diverging non-trivially from the plan]",
+      "expected_output": "When the verify phase reports a non-trivial divergence between the plan and the actual code, the skill brings it to the user via a real foreground AskUserQuestion instead of silently forcing 'Status: Verified' or archiving the change.",
+      "setup": "Same style of setup as spdd-implement eval 6: implement a plan, then introduce a discrepancy between the plan/canvas and the real code before the verify phase runs.",
+      "assertions": [
+        "The plan/canvas is not marked 'Status: Verified' while the divergence is unresolved",
+        "Nothing is folded into spdd/specs/ or moved to spdd/archive/ while the divergence is open",
+        "The user is asked via AskUserQuestion how to resolve the divergence before verification concludes"
+      ]
+    },
+    {
+      "id": 38,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "On a host with no subagent-launching mechanism available, the skill runs each phase by invoking the phase skill directly in its own context (inline mode) instead of launching an isolated subagent. Orchestration and the checkpoint gate stay the same; only isolation and per-phase model selection are lost.",
+      "setup": "Simulate a host with no mechanism to launch an isolated subagent with a model override.",
+      "assertions": [
+        "Each phase still produces the same artifacts as isolated mode (canvas.md, plans/*.md, code changes)",
+        "No subagent/background launch is invoked for any phase",
+        "The checkpoint gate on '⚠️ Confirm:' lines still applies before advancing between phases"
+      ]
+    }
+  ]
+}

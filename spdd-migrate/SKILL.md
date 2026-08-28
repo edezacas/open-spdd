@@ -3,6 +3,7 @@ name: spdd-migrate
 description: Migrate canvases from the old flat docs/prompts/SPDD-*.md layout to the new spdd/changes/SPDD-.../canvas.md folder layout, reformatting Acceptance Criteria and Safeguards into WHEN/THEN scenarios. Use once, in a project that still has canvases in the old location, when moving to the current version of these skills.
 license: Apache-2.0
 compatibility: Works with any agent. Step 4 (hook rewrite) requires Claude Code.
+allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
   version: "1.0"

@@ -1,8 +1,9 @@
 ---
 name: spdd-verify
-description: Verify an implemented SPDD plan (or canvas) against its Operations, Norms, and Safeguards, write targeted tests for uncovered edge cases, and — once everything for a change is verified — fold it into the living spec and archive it. Use after spdd-implement, or whenever the user wants to review/test a feature against its canvas.
+description: Verify an implemented SPDD plan (or canvas) against its Operations, Norms, and Safeguards, write targeted tests for uncovered edge cases, and — once everything for a change is verified — fold it into the living spec and archive it. Invoked manually via /spdd-verify, or delegated by spdd-agent — does not auto-trigger on its own.
 license: Apache-2.0
 compatibility: Works with any agent. Step 8 (SPDD hook installation) requires Claude Code.
+allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
   version: "1.0"
