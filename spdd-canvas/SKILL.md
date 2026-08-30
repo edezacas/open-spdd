@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 11 (SPDD hook installation) requires C
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.2"
+  version: "2.3"
 ---
 
 ## Today's date and time
@@ -27,9 +27,9 @@ If no feature description was provided, ask the user for a brief description bef
 
 If the description reads as a trivial change (typo, config tweak, single obvious line) or as an open-ended exploratory spike with no fixed shape yet, ask in one line whether the user wants the full canvas or would rather skip it and go straight to editing. If they skip it, stop here — do not generate a canvas.
 
-### Step 3 — Detect output language
+### Step 3 — Output language
 
-Use the language detected from the user for all document content.
+Generate all document content in English, regardless of the language used in the feature description or conversation. This includes section headings, labels, User story, Acceptance Criteria, Entities, Norms, Safeguards, and any inline notes.
 
 ### Step 4 — Read the base template
 

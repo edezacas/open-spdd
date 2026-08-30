@@ -57,6 +57,18 @@
         "The response explicitly warns that plan-01 has progress (Implemented) that would be discarded",
         "plan-01.md's content and Status are unchanged unless the user explicitly confirmed an overwrite"
       ]
+    },
+    {
+      "id": 58,
+      "prompt": "/spdd-design (canvas already in English; the user gives spdd-design additional instructions in Spanish while it runs, e.g. 'agrupa todo en un solo plan')",
+      "expected_output": "The generated plan-*.md stays entirely in English — plan name, section headings, and all newly authored prose in Operations/Entities/Structure — even though the user's mid-run instructions were in Spanish. No mixing of Spanish and English within the document.",
+      "setup": "Generate a canvas with /spdd-canvas (already in English per this version). Run /spdd-design on it, but phrase any follow-up instruction to the agent in Spanish.",
+      "assertions": [
+        "plan-*.md's plan name, headings, and body content are entirely in English",
+        "No Spanish words appear in newly authored prose (Operations/Entities/Structure descriptions, Depends on/Shared touchpoints notes)",
+        "Content copied verbatim from the canvas's Operations table remains unchanged and consistent in English",
+        "The Step 7 language note in spdd-design/SKILL.md is followed regardless of the conversation language used to invoke the skill"
+      ]
     }
   ]
 }

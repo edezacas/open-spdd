@@ -5,7 +5,7 @@ license: Apache-2.0
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Instructions
@@ -33,6 +33,8 @@ If anything found in Step 3 suggests a change in observable behavior — not jus
 Update only Entities, Structure, Operations, and Norms in `spdd/specs/<domain>.md` to match the code's current shape. Requirements (the `WHEN/THEN` scenarios) stay untouched — they're the behavior contract, not the implementation shape.
 
 If it's genuinely unclear whether something is a pure refactor or a behavior change, don't guess: mark it with `⚠️ Confirm:` directly in the spec and ask the user.
+
+> **Language note:** Any new text written when updating the spec in Step 5 (modified Entities descriptions, Structure notes, Operations changes, or Norms updates) must be in English, consistent with the rest of the spec document. This applies even if the user's conversation is in another language. The spec documents are the authoritative source in English; conversational responses to the user follow the conversation's language settings (e.g., the user's CLAUDE.md global instructions).
 
 ### Step 6 — Report
 

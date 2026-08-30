@@ -1,7 +1,7 @@
 # Plan: [plan name]
 
 > Part of the canvas at [../canvas.md](../canvas.md) — Requirements, Norms, and Safeguards live there and apply to this plan too; do not duplicate them here. `spdd-implement` and `spdd-verify` always read both files together.
-> Language: translate all section headings, labels, and body content to the language detected from the user.
+> Language: all section headings, labels, and body content are in English.
 
 **Status:** Draft
 **Depends on:** [ids of other plans this one requires to be done first, or `none` — never assume independence without checking; use ⚠️ Confirm: if genuinely uncertain]

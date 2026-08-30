@@ -6,14 +6,14 @@ compatibility: Works with any agent. Step 5 (SPDD hook installation) requires Cl
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.0"
+  version: "2.1"
 ---
 
 ## Instructions
 
-### Step 0 — Detect output language
+### Step 0 — Output language
 
-Use the language detected from the user for all document content.
+Use English for all document content generated or modified during implementation (canvas or plan notes, discrepancy annotations, etc.), regardless of the user's conversation language. This reduces reasoning tokens when other skills read these documents as context later. Code itself already follows the English-only convention in the user's global `CLAUDE.md`.
 
 ### Step 1 — Locate the change and plan
 

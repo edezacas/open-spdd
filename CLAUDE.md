@@ -38,6 +38,7 @@ evals/workspace/                      # gitignored — local eval results go her
 - `evals/workspace/` is gitignored; results stay local.
 - SPDD change folders (in a *target* project, not here) follow `spdd/changes/SPDD-YYYY-MM-DD-HHMM-slug/`, each holding `canvas.md` and a `plans/` folder produced by `spdd-design`.
 - Unresolved canvas/plan items are marked `⚠️ Confirm:` and must be resolved before implementation.
+- SPDD skills always generate document content (canvas, plans, specs, and inline notes) in English, regardless of the language of the feature description or conversation — this reduces reasoning token consumption for downstream skill steps that read these documents as context. Conversational responses to the user follow the conversation's language setting (e.g. your `CLAUDE.md` "Responses in Spanish").
 - `spdd/specs/<domain>.md` is the living, cumulative source of truth per domain in a target project — `spdd-verify` writes to it once every plan in a change is verified; `spdd-sync` may later update its Entities/Structure/Operations/Norms (never Requirements) to match a behavior-preserving refactor.
 - `spdd/norms.md` (in a target project) holds team-wide, non-negotiable Norms/Safeguards read by `spdd-canvas` (injected into every new canvas) and `spdd-verify` (checked against the implemented diff). No skill creates or edits it — team-maintained, read-only from the skills' side.
 

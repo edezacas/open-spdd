@@ -92,6 +92,33 @@
         "Those carried-over rules are marked or attributed as coming from spdd/norms.md, distinct from feature-specific ones",
         "spdd/norms.md itself is not created or modified by the skill"
       ]
+    },
+    {
+      "id": 52,
+      "prompt": "/spdd-canvas Quiero agregar una nueva función para manejar autenticación de usuarios con OAuth2 en la plataforma.",
+      "expected_output": "Canvas generated with all content in English (headings, User story, Acceptance Criteria, Entities, Norms, Safeguards) even though the feature description was provided entirely in Spanish.",
+      "assertions": [
+        "File saved at spdd/changes/SPDD-YYYY-MM-DD-HHMM-slug/canvas.md",
+        "Canvas header 'Status: Draft' is present",
+        "Section headings are in English (e.g. 'Requirements', 'Entities', 'Approach', 'Structure', 'Operations', 'Norms', 'Safeguards')",
+        "User story is written in English (contains 'As a', 'I want', 'so that' in English, not Spanish)",
+        "Acceptance Criteria scenarios are written in English (WHEN/THEN in English, not Spanish)",
+        "Entities section is in English",
+        "No Spanish words appear in section labels or structured content (e.g. not 'Usuario' or 'Autenticación' in entity names unless quoted from project paths)"
+      ]
+    },
+    {
+      "id": 53,
+      "prompt": "/spdd-canvas Necesito crear un nuevo microservicio de reportes que se ejecute cada noche para generar métricas de negocio.",
+      "expected_output": "Canvas generated with all content in English even though the feature description was provided entirely in Spanish. Safeguards and inline ⚠️ Confirm notes are also in English.",
+      "assertions": [
+        "File saved at spdd/changes/SPDD-YYYY-MM-DD-HHMM-slug/canvas.md",
+        "All section headings are in English",
+        "Requirements section (including User story and Acceptance Criteria) is in English",
+        "Any '⚠️ Confirm:' inline notes are written in English",
+        "Safeguards section headings and body content are in English (e.g. 'Tests to write', 'Edge cases to consider', not Spanish equivalents)",
+        "No mixing of Spanish and English within structured content (e.g. entity names or scenario descriptions stay consistent in language)"
+      ]
     }
   ]
 }

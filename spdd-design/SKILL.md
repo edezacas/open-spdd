@@ -5,7 +5,7 @@ license: Apache-2.0
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Instructions
@@ -42,6 +42,8 @@ Look at Entities, Structure, and Operations together to find natural boundaries:
 Read [template-plan.md](assets/template-plan.md).
 
 ### Step 7 — Generate the plan(s)
+
+> **Language note:** The plan content you generate (plan names, section headings, all prose in Operations/Entities/Structure descriptions, and any notes you add) must be in English, regardless of the language of the canvas you read or the user's conversation language. The canvas is already in English as of this version; maintain that English-only rule in any new content you write.
 
 For each group (or the single plan), fill the template read in Step 6 and write it to `spdd/changes/SPDD-slug/plans/plan-NN-<name>.md`. Keep the template's `../canvas.md` link as-is — it's a valid relative path from any `plans/` folder — and fill in:
 

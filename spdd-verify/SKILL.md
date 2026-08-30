@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 9 (SPDD hook installation) requires Cl
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.3"
+  version: "1.4"
 ---
 
 ## Instructions
@@ -69,6 +69,8 @@ Before folding any result back to `spdd/specs/<domain>.md`, verify that the actu
    - **In background (subagent under spdd-agent, no AskUserQuestion available):** Treat the discrepancy as a Step 6 failure — stop the process (never block waiting for a response), revert the `Status: Verified` set in Step 6 back to its previous value, do not fold or archive, report the concrete gap, and append a line `⚠️ Confirm: <discrepancy detected during Diff-to-canvas check — review and confirm whether intentional>` to the plan/canvas for the foreground checkpoint in `spdd-agent` to resolve afterward.
 
 If everything passes (diff is coherent or user confirms discrepancies), continue to Step 8.
+
+> **Language note:** Any new prose written during Diff-to-canvas check (discrepancy notes, `⚠️ Confirm:` lines added directly to canvas/plan) or during Fold back and archive (new scenarios or Norms added to spec, fold annotations) must be written in English, regardless of the user's conversation language. The canvas/plan/spec documents are always generated in English; conversational responses to the user follow the conversation's language settings (e.g., the user's CLAUDE.md global instructions).
 
 ### Step 8 — Fold back and archive (canvas level, not plan level)
 

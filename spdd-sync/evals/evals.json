@@ -42,6 +42,17 @@
         "No file is created or modified under spdd/specs/",
         "The response explicitly states this isn't a substitute for the normal spdd-canvas flow"
       ]
+    },
+    {
+      "id": 57,
+      "prompt": "/spdd-sync",
+      "expected_output": "spdd/specs/<domain>.md already exists with its Entities/Structure/Operations/Norms written in Spanish (predates the English-only rule). A behavior-preserving refactor is synced: the skill updates only the new/changed text in Step 5 and writes that new text in English, but does not retranslate the untouched pre-existing Spanish text as a side effect.",
+      "setup": "Take a domain whose spdd/specs/<domain>.md was written entirely in Spanish before the English-only rule existed. Perform a pure shape refactor (e.g. rename a function referenced in Operations), then run spdd-sync.",
+      "assertions": [
+        "The specific Entities/Structure/Operations/Norms rows touched by the refactor are updated, and that new text is in English",
+        "Untouched rows/sections elsewhere in spdd/specs/<domain>.md remain in their original Spanish, not silently retranslated",
+        "The Requirements section is unchanged"
+      ]
     }
   ]
 }

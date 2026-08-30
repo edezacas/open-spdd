@@ -51,4 +51,5 @@ evals/workspace/                      # gitignored — local eval results go her
 ## Gotchas
 - `evals/workspace/` is gitignored; eval results stay local
 - `spdd/changes/` canvases/plans with `Status: Draft`, `Confirmed`, or `Implemented` (but not yet `Verified`) are works in progress
+- SPDD skills always generate document content (canvas, plans, specs, and inline notes) in English, regardless of the language of the feature description or conversation — this reduces reasoning token consumption for downstream skill steps that read these documents as context. Conversational responses to the user follow the conversation's language setting (e.g. your `CLAUDE.md` "Responses in Spanish").
 - No backward-compat shim for the old `docs/prompts/` layout — projects on the previous version should run `/spdd-migrate` once, which moves canvases to `spdd/changes/`, reformats them to `WHEN/THEN`, and updates the guard hook to the new path automatically

@@ -2,7 +2,7 @@
 
 > Generated on [DATE]. Review lines marked ⚠️ before generating code.
 > Golden rule: if something breaks during development, fix this canvas first, then the code.
-> Language: translate all section headings, labels, placeholder text, and body content to the language detected from the user.
+> Language: This canvas is written in English, regardless of the language of the feature description or conversation.
 
 **Status:** Draft
 

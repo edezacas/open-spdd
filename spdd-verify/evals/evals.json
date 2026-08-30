@@ -150,6 +150,17 @@
         "The plan/canvas is not marked 'Status: Verified'",
         "spdd/specs/ is not modified and no fold or archive occurs"
       ]
+    },
+    {
+      "id": 56,
+      "prompt": "/spdd-verify",
+      "expected_output": "During the Diff-to-canvas check (Step 7), the skill detects a discrepancy and writes a new '⚠️ Confirm:' discrepancy note directly into the plan/canvas. Even though the user's conversation with the agent is in Spanish, the note itself is written in English, consistent with the rest of the persisted document.",
+      "setup": "Run spdd-verify in a conversation conducted in Spanish, on a change whose diff includes an undeclared file (a Step 7 scope discrepancy), as a background subagent with no AskUserQuestion available.",
+      "assertions": [
+        "The '⚠️ Confirm:' line appended to the plan/canvas is written in English, not Spanish",
+        "No other part of the plan/canvas is silently translated as a side effect",
+        "The plan/canvas is not marked 'Status: Verified'"
+      ]
     }
   ]
 }
