@@ -1,25 +1,25 @@
-# Normas del proyecto
+# Project norms
 
-> Copia este archivo a `spdd/norms.md` en la raíz del proyecto y complétalo con las
-> reglas reales del equipo. `spdd-canvas` lo lee siempre que exista, e inyecta su
-> contenido como Norms/Safeguards de partida en cada canvas nuevo. `spdd-verify` lo usa
-> además para validar que el diff implementado no lo contradice.
+> Copy this file to `spdd/norms.md` at the project root and fill it in with your team's
+> actual rules. `spdd-canvas` always reads it when present, and injects its content as
+> starting Norms/Safeguards into every new canvas. `spdd-verify` also uses it to validate
+> that the implemented diff doesn't contradict it.
 >
-> Este archivo es responsabilidad del equipo: ningún agente lo genera ni lo edita
-> automáticamente, solo lo lee.
+> This file is the team's responsibility: no skill generates or edits it automatically,
+> only reads it.
 
-## Arquitectura
+## Architecture
 
-<!-- Decisiones de arquitectura que todo canvas debe respetar (capas, límites de módulo, patrones obligatorios). -->
+<!-- Architecture decisions every canvas must respect (layers, module boundaries, mandatory patterns). -->
 
-## Seguridad
+## Security
 
-<!-- Reglas de seguridad no negociables (auth, manejo de secretos, validación de entrada). -->
+<!-- Non-negotiable security rules (auth, secret handling, input validation). -->
 
-## Convenciones de código
+## Code conventions
 
-<!-- Convenciones de estilo o estructura específicas del equipo, más allá de lo que ya impone el linter. -->
+<!-- Team-specific style or structure conventions beyond what the linter already enforces. -->
 
-## Decisiones no negociables
+## Non-negotiable decisions
 
-<!-- Cualquier otra decisión de producto o técnica que no debe reabrirse canvas a canvas. -->
+<!-- Any other product or technical decision that shouldn't be reopened canvas by canvas. -->

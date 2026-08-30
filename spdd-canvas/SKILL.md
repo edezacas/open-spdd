@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 11 (SPDD hook installation) requires C
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.3"
+  version: "2.4"
 ---
 
 ## Today's date and time
