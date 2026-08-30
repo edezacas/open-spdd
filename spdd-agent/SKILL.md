@@ -6,7 +6,7 @@ compatibility: Works with any agent. Per-phase model selection and subagent isol
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.2"
+  version: "1.3"
 ---
 
 ## Instructions
@@ -30,15 +30,16 @@ Config lives at `~/.config/spdd/config.json` — the XDG user-config convention,
   }
 }
 ```
+(shown with Claude Code aliases as a concrete example — any host's own model identifiers are equally valid here, see below)
 
 Only `canvas`, `design`, `implement`, and `verify` are ever used by this skill's own flow (Steps 4–8) — `sync` and `migrate` keep their independent auto-trigger and run standalone, outside this orchestrator. Their entries exist in the same file only so the config surface (Step 2) is uniform across all six phases.
 
 Each value is a free-text model identifier in whatever form the current host's subagent mechanism accepts — not a fixed enum. On Claude Code that's `opus` / `sonnet` / `haiku` / `fable`; on a host like opencode it's a provider-qualified id (e.g. `anthropic/claude-sonnet-4-5`, `openai/gpt-5`) or whatever string that host's model-override field expects. This skill never validates the string against a host-specific list — it only checks that a value is present and non-empty, and passes it through verbatim to the subagent call in Step 3.
 
-1. If the file doesn't exist: this is first-run bootstrap. Before touching the user's feature request, propose a default model per phase (table below) via `AskUserQuestion`, grouped into 1–2 calls of up to 4 questions each. On Claude Code, offer `opus` / `sonnet` / `haiku` / `fable` as options with the table's suggestion pre-marked "(Recommended)". On any other host, offer the table's suggested tier (see column) as the recommended option and rely on `AskUserQuestion`'s free-text "Other" for any different identifier the user wants. Write the confirmed selections to `~/.config/spdd/config.json` (create `~/.config/spdd/` if needed).
+1. If the file doesn't exist: this is first-run bootstrap. Before touching the user's feature request, propose a default model per phase (table below) via `AskUserQuestion`, grouped into 1–2 calls of up to 4 questions each. The choice of options depends on the host's capability, not its identity: if the host's model-override field accepts a small fixed set of named aliases (e.g. Claude Code's `opus`/`sonnet`/`haiku`/`fable`), offer that set as options with the table's suggested tier pre-marked "(Recommended)". If the host instead takes an arbitrary model-identifier string, offer the table's suggested tier as the recommended free-text default and let the user type the exact identifier they want via `AskUserQuestion`'s "Other". Write the confirmed selections to `~/.config/spdd/config.json` (create `~/.config/spdd/` if needed).
 2. If the file exists: read it and check each of the six values is a non-empty string. Treat a missing or empty value as absent and re-ask only for that phase (same `AskUserQuestion` mechanism), then write the corrected file back.
 
-| Phase | Suggested tier | Claude Code default | Why |
+| Phase | Suggested tier | Fixed-alias example (Claude Code) | Why |
 |---|---|---|---|
 | `canvas` | high-reasoning | `opus` | Ambiguity/risk detection and REASONS drafting is the highest reasoning-density phase. |
 | `design` | high-reasoning | `opus` | Deciding one plan vs. several and mapping dependencies is an architectural call. |
@@ -47,7 +48,9 @@ Each value is a free-text model identifier in whatever form the current host's s
 | `sync` | fast/cheap | `sonnet` | Mechanical spec↔code sync after a refactor. |
 | `migrate` | fast/cheap | `sonnet` | Mostly mechanical layout migration. |
 
-**Explicit config request** (from Step 0): read the current file (bootstrap first if missing, per above), show the six current values, and if the user asked to change one or more, ask only for those via `AskUserQuestion` with the same options (fixed list on Claude Code, free text elsewhere), then write the file back. Report the resulting config and stop — do not proceed to Step 3.
+The last column is one worked example, not the framework's default — any host with its own fixed alias set (present or future) maps `Suggested tier` to that set the same way.
+
+**Explicit config request** (from Step 0): read the current file (bootstrap first if missing, per above), show the six current values, and if the user asked to change one or more, ask only for those via `AskUserQuestion` with the same host-capability-based options (fixed alias set vs. free text) as bootstrap, then write the file back. Report the resulting config and stop — do not proceed to Step 3.
 
 ### Step 2 — Detect subagent support
 
