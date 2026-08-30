@@ -65,6 +65,79 @@
         "spdd/specs/<domain>.md's Entities table has exactly one row for that entity name after folding",
         "The row reflects the current (possibly updated) notes/path, not a stale duplicate of the old one"
       ]
+    },
+    {
+      "id": 31,
+      "prompt": "/spdd-verify",
+      "expected_output": "The Diff-to-canvas check runs and the real git diff covers exactly the Operations declared in the canvas, touching only declared Structure/Shared touchpoints. The check passes and Step 7 reports success without asking for confirmation.",
+      "setup": "Implement a feature from a canvas, commit changes, then run spdd-verify. Ensure the diff touches only files mentioned in Structure and Operations.",
+      "assertions": [
+        "Step 7 (Diff-to-canvas check) reports the diff as coherent with the canvas",
+        "No AskUserQuestion prompt appears",
+        "The process continues to Step 8 (fold-back) without stopping"
+      ]
+    },
+    {
+      "id": 32,
+      "prompt": "/spdd-verify",
+      "expected_output": "The Diff-to-canvas check detects that the real diff includes changes to a file that does not appear in Structure, Shared touchpoints, or Operations of the canvas. The check stops immediately, reports the concrete discrepancy (which file is undeclared), and does not fold anything to spdd/specs/.",
+      "setup": "Implement a feature but also modify a file not mentioned in the canvas (e.g., a config file or utility touched as a side effect). Commit and run spdd-verify.",
+      "assertions": [
+        "Step 7 stops the process before fold-back",
+        "The report explicitly names the undeclared file touched by the diff",
+        "The plan/canvas is not marked 'Status: Verified'",
+        "spdd/specs/ is not modified and no fold occurs"
+      ]
+    },
+    {
+      "id": 33,
+      "prompt": "/spdd-verify",
+      "expected_output": "The Diff-to-canvas check detects that one of the Operations listed in the canvas has no corresponding code changes in the real diff. The check stops immediately, reports the concrete gap (which Operation lacks implementation), and does not fold anything.",
+      "setup": "Generate a canvas with an Operation, but skip implementing that Operation in code (or implement it only partially in memory, not in the diff). Run spdd-verify.",
+      "assertions": [
+        "Step 7 stops the process before fold-back",
+        "The report explicitly names the Operation with no corresponding diff changes",
+        "The plan/canvas is not marked 'Status: Verified'",
+        "No fold or archive occurs"
+      ]
+    },
+    {
+      "id": 34,
+      "prompt": "/spdd-verify",
+      "expected_output": "The Diff-to-canvas check detects a discrepancy (e.g., a file outside declared scope or an Operation without implementation) in an interactive session. Using AskUserQuestion, the human confirms that the discrepancy is intentional. The check continues to Step 8, folds the result, and notes the accepted discrepancy.",
+      "setup": "Run spdd-verify in foreground (interactive) mode. Implement a feature with a deliberate discrepancy (undeclared file or missing Operation). When the Diff-to-canvas check prompts, answer 'yes' to confirm the discrepancy is intentional.",
+      "assertions": [
+        "Step 7 calls AskUserQuestion to ask about the discrepancy",
+        "After user confirms, the process continues to Step 8 without stopping",
+        "The fold-back occurs normally",
+        "A note in the fold or archive reflects the accepted discrepancy"
+      ]
+    },
+    {
+      "id": 35,
+      "prompt": "/spdd-verify (in background delegated by spdd-agent)",
+      "expected_output": "The Diff-to-canvas check detects a discrepancy while running as a background subagent under spdd-agent (no interactive AskUserQuestion available). The check does not block waiting for user input. Instead, it stops the process, leaves the plan/canvas unchanged, does not fold or archive, reports the gap, and appends a line '⚠️ Confirm: <discrepancy message>' to the plan/canvas.",
+      "setup": "Run spdd-agent on a feature that will diverge during implementation (undeclared file or missing Operation). Simulate spdd-verify running as a background subagent with the divergence present.",
+      "assertions": [
+        "Step 7 detects the discrepancy without blocking",
+        "No AskUserQuestion is attempted (or if it is, it fails gracefully)",
+        "The plan/canvas is not marked 'Status: Verified'",
+        "A new line '⚠️ Confirm:' appears in the plan/canvas for later resolution",
+        "spdd/specs/ is not modified, no fold or archive occurs"
+      ]
+    },
+    {
+      "id": 36,
+      "prompt": "/spdd-verify",
+      "expected_output": "The Diff-to-canvas check runs after Step 4 (Put the implementation to the test) has created new test files. Those test files appear in the diff but are not mentioned in the canvas Structure/Operations. The check correctly exempts them from the 'undeclared file' rule and does not block because of them.",
+      "setup": "Implement a feature with a plan that touches only certain files. Step 4 creates new test files (e.g., test_feature.py). Run the full spdd-verify flow. Ensure test files are created during this verification, not part of the original implementation.",
+      "assertions": [
+        "Step 7 detects the test files in the diff",
+        "The check correctly identifies them as Step-4-generated (not original implementation)",
+        "They are exempted from scope validation",
+        "The Diff-to-canvas check passes without blocking on test files",
+        "The process continues to fold-back normally"
+      ]
     }
   ]
 }

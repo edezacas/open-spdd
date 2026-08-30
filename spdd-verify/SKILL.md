@@ -2,11 +2,11 @@
 name: spdd-verify
 description: Verify an implemented SPDD plan (or canvas) against its Operations, Norms, and Safeguards, write targeted tests for uncovered edge cases, and — once everything for a change is verified — fold it into the living spec and archive it. Invoked manually via /spdd-verify, or delegated by spdd-agent — does not auto-trigger on its own.
 license: Apache-2.0
-compatibility: Works with any agent. Step 8 (SPDD hook installation) requires Claude Code.
+compatibility: Works with any agent. Step 9 (SPDD hook installation) requires Claude Code.
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Instructions
@@ -43,7 +43,30 @@ If everything in Step 3–4 passes: set `Status: Verified` on the plan just chec
 
 If something fails: report the gaps, leave the plan/canvas as-is in `spdd/changes/`, do not archive anything, stop here.
 
-### Step 7 — Fold back and archive (canvas level, not plan level)
+### Step 7 — Diff-to-canvas check
+
+Before folding any result back to `spdd/specs/<domain>.md`, verify that the actual code changes align with the canvas and plan:
+
+1. **Obtain the real diff:**
+   - If the scope is not yet committed: run `git diff <files in scope>` to get the working tree changes.
+   - If already committed: use `git log -p --stat <files in scope>` to retrieve the commit changes.
+
+2. **Compare the diff against Operations:**
+   - For each Operation listed in the scope (canvas and plan), confirm there is corresponding code in the diff.
+   - If an Operation has no corresponding implementation: **stop and report** the gap (e.g., "Canvas declares Operation: `X` → Code real: no changes in diff").
+
+3. **Validate the diff's scope:**
+   - No file or module touched in the diff may exist outside Structure, Shared touchpoints, or Operations of the canvas/plan.
+   - **Exception:** Test files created by Step 4 (Put the implementation to the test) during *this same* verification are exempt — they are a verification byproduct, not part of the original implementation diff.
+   - If a file falls outside declared scope: **stop and report** (e.g., "Canvas declares: [list of paths] → Code real: also includes `<file>`, undeclared").
+
+4. **Handle discrepancies:**
+   - **In foreground (interactive session with user turn):** Use `AskUserQuestion` to ask whether the discrepancy is intentional. If confirmed, continue to Step 8 and note the accepted discrepancy in the fold. If not confirmed or unclear, stop without folding.
+   - **In background (subagent under spdd-agent, no AskUserQuestion available):** Treat the discrepancy as a Step 6 failure — stop the process (never block waiting for a response), leave the plan/canvas unchanged, do not fold or archive, report the concrete gap, and append a line `⚠️ Confirm: <discrepancy detected during Diff-to-canvas check — review and confirm whether intentional>` to the plan/canvas for the foreground checkpoint in `spdd-agent` to resolve afterward.
+
+If everything passes (diff is coherent or user confirms discrepancies), continue to Step 8.
+
+### Step 8 — Fold back and archive (canvas level, not plan level)
 
 Only when *every* plan under this change is `Status: Verified` (or immediately, if the change never had a `plans/` split):
 
@@ -52,7 +75,7 @@ Only when *every* plan under this change is `Status: Verified` (or immediately, 
 
 While any plan is still pending, do not fold or archive anything — a partially implemented feature should never be described as done in the living spec.
 
-### Step 8 — Ensure the SPDD hook is present *(Claude Code only)*
+### Step 9 — Ensure the SPDD hook is present *(Claude Code only)*
 
 > Skip this step if you are not running as Claude Code.
 
@@ -76,6 +99,6 @@ If **missing**, ask the user whether to add it. If confirmed, merge the followin
 }
 ```
 
-### Step 9 — Report back
+### Step 10 — Report back
 
 Summarize what was verified, tests added, and — if the change was fully verified — the spec files updated and the new path under `spdd/archive/`.
