@@ -6,7 +6,7 @@ compatibility: Works with any agent. Per-phase model selection and subagent isol
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.6"
+  version: "1.7"
 ---
 
 ## Instructions
@@ -26,8 +26,10 @@ question mechanism of any kind is available there.
 Whenever this skill resolves a choice on its own — without a blocking `AskUserQuestion` turn — show it to the user with one short, visible line, immediately before acting on it:
 
 ```
-[decisión automática] <qué decidió> — <por qué>
+[automatic decision] <what it decided> — <why>
 ```
+
+This is a conversational response, not persisted document content — phrase it in whatever language the current conversation is in (e.g. the user's global `CLAUDE.md` instructions), same as every other conversational reply from this skill; only the bracketed label stays as a fixed marker.
 
 This applies to every foreground autonomous decision in this flow: the routing choice (Step 0, direct route only — folded into its existing transparency line below) and the isolation-mode detection (Step 2). It does not apply inside a background subagent (Step 3), which has no output channel of its own for this — its pending decisions still surface as `⚠️ Confirm:` lines per the never-block rule.
 
@@ -61,7 +63,7 @@ Before starting the canvas phase, analyze the user's description to determine wh
 
 If the direct route is chosen:
 
-1. Display the transparency line: `[decisión automática] Ruta directa: <reason> → implemento sin canvas.` (where reason briefly explains the decision).
+1. Display the transparency line: `[automatic decision] Direct route: <reason> → implementing without a canvas.` (where reason briefly explains the decision), phrased in the conversation's language per "Decision transparency" above.
 2. Do **not** bootstrap the model configuration (Step 1 below) — direct route does not launch subagents.
 3. Implement the changes directly (using Write, Edit, and Bash as needed for this skill).
 4. Run the test suite for the affected area via `Bash`. If tests fail, report the failure and do not update the spec — leave the decision to revert or fix to the user.
@@ -110,7 +112,7 @@ The last column is one worked example, not the framework's default — any host 
 
 Check whether the current host exposes a mechanism to launch an isolated subagent with a model override — in Claude Code, the `Agent` tool (`subagent_type` + `model`); in opencode, the Task tool with an `agent`/`model` field; other hosts may name this differently but the shape is the same: spawn an isolated worker, pick its model, give it a prompt. If such a mechanism exists, use **Isolated mode** (Step 3). If it doesn't, use **Inline mode** (Step 3-alt).
 
-Display the transparency line for this choice before Step 3/3-alt runs: `[decisión automática] Modo aislado — el host expone un mecanismo de subagentes con override de modelo.` or `[decisión automática] Modo inline — el host no expone mecanismo de subagentes aislables; se pierde selección de modelo por fase.`
+Display the transparency line for this choice before Step 3/3-alt runs — phrased in the conversation's language per "Decision transparency" above: `[automatic decision] Isolated mode — the host exposes a subagent mechanism with model override.` or `[automatic decision] Inline mode — the host doesn't expose an isolatable subagent mechanism; per-phase model selection is lost.`
 
 ### Step 3 — Isolated mode: phase invocation contract
 
