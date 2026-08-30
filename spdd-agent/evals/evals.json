@@ -86,6 +86,17 @@
         "No subagent/background launch is invoked for any phase",
         "The checkpoint gate on '⚠️ Confirm:' lines still applies before advancing between phases"
       ]
+    },
+    {
+      "id": 39,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "On a host with no structured, blocking question tool (no AskUserQuestion equivalent), every foreground checkpoint (model bootstrap, canvas/plan confirm gates) asks the same question in plain text in the response and waits for the user's next message, instead of stalling, skipping the question, or hallucinating a call to a tool the host doesn't have.",
+      "setup": "Simulate a host with no structured multi-choice/blocking question tool available in the foreground.",
+      "assertions": [
+        "The model bootstrap questions (Step 1) are asked as plain text, not skipped",
+        "Every '⚠️ Confirm:' line in the canvas is asked about as plain text before the design phase starts",
+        "No tool call to a nonexistent question tool is attempted"
+      ]
     }
   ]
 }

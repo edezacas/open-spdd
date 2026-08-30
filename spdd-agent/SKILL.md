@@ -6,10 +6,20 @@ compatibility: Works with any agent. Per-phase model selection and subagent isol
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.3"
+  version: "1.4"
 ---
 
 ## Instructions
+
+### A note on "AskUserQuestion" throughout this skill
+
+Every foreground step below (0, 1, 2, 5, 6, 8) that says "ask via `AskUserQuestion`" means: use
+the host's structured, blocking question mechanism if it has one (in Claude Code, the
+`AskUserQuestion` tool). If the host has no such mechanism, ask the same question in plain text in
+your response and wait for the user's reply before continuing — same capability-not-identity
+treatment already applied to model selection (Step 1) and subagent detection (Step 2). This does
+not affect the never-block rule for background subagents (Step 3), which correctly assumes no
+question mechanism of any kind is available there.
 
 ### Step 0 — Classify the request
 
