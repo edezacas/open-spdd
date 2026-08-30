@@ -18,14 +18,15 @@ spdd-agent/SKILL.md                   # orchestrates canvas → design → imple
 spdd-agent/evals/evals.json           # evals 31–38: config request, bootstrap, invalid-config repair, never-block rule, checkpoint gate, dependency order, divergence reopen, inline fallback
 spdd-canvas/SKILL.md                  # REASONS canvas generator — /spdd-canvas
 spdd-canvas/assets/template-reasons.md
-spdd-canvas/evals/evals.json          # evals 1–3, 9–10, 48–49: guard, generation quality, hook, applicability guard, spec read, freshness check
+spdd-canvas/assets/template-norms.md  # starting template for a target project's spdd/norms.md
+spdd-canvas/evals/evals.json          # evals 1–3, 9–10, 48–50: guard, generation quality, hook, applicability guard, spec read, freshness check, global norms
 spdd-design/SKILL.md                  # canvas → independent implementation plans — /spdd-design
 spdd-design/assets/template-plan.md
 spdd-design/evals/evals.json          # evals 11–14, 29: single plan, split plans, dependencies, shared touchpoints, existing-plan guard
 spdd-implement/SKILL.md               # canvas/plan-driven implementer — /spdd-implement
 spdd-implement/evals/evals.json       # evals 4–8: unresolved items, missing-plan guard, divergence, unmet dependency, final state
 spdd-verify/SKILL.md                  # verifies, tests, folds into spec, archives — /spdd-verify
-spdd-verify/evals/evals.json          # evals 15–19, 30: missing op, untested safeguard, single-plan archive, partial-plan hold, norm violation, spec dedup on fold-back
+spdd-verify/evals/evals.json          # evals 15–19, 30–36, 51: missing op, untested safeguard, single-plan archive, partial-plan hold, norm violation, spec dedup on fold-back, diff-to-canvas check, global-norms violation
 spdd-sync/SKILL.md                    # code → living spec sync, behavior-preserving only — /spdd-sync
 spdd-sync/evals/evals.json            # evals 20–23: clean refactor sync, behavior-change rejection, ambiguous case, missing spec
 spdd-migrate/SKILL.md                 # one-time docs/prompts/ → spdd/ migration — /spdd-migrate
@@ -38,6 +39,7 @@ evals/workspace/                      # gitignored — local eval results go her
 - SPDD change folders (in a *target* project, not here) follow `spdd/changes/SPDD-YYYY-MM-DD-HHMM-slug/`, each holding `canvas.md` and a `plans/` folder produced by `spdd-design`.
 - Unresolved canvas/plan items are marked `⚠️ Confirm:` and must be resolved before implementation.
 - `spdd/specs/<domain>.md` is the living, cumulative source of truth per domain in a target project — `spdd-verify` writes to it once every plan in a change is verified; `spdd-sync` may later update its Entities/Structure/Operations/Norms (never Requirements) to match a behavior-preserving refactor.
+- `spdd/norms.md` (in a target project) holds team-wide, non-negotiable Norms/Safeguards read by `spdd-canvas` (injected into every new canvas) and `spdd-verify` (checked against the implemented diff). No skill creates or edits it — team-maintained, read-only from the skills' side.
 
 ## Claude Code Integration
 

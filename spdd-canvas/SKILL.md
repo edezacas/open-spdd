@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 11 (SPDD hook installation) requires C
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.1"
+  version: "2.2"
 ---
 
 ## Today's date and time
@@ -61,6 +61,7 @@ Before reading the spec, check whether it has fallen behind code changes made ou
 Do both of the following before filling the canvas:
 
 - **Read the living spec.** Read `spdd/specs/<domain>.md` for the domain identified in Step 6 if it exists. If the domain can't be inferred with confidence, use `spdd/specs/general.md` as a fallback and say so in the final report. Use whatever is found to avoid contradicting current system behavior, and to mark explicitly which parts of the canvas are new requirements versus changes to something already spec'd.
+- **Read global norms.** Read `spdd/norms.md` (project root) if it exists — see [template-norms.md](assets/template-norms.md) for its expected shape. Carry its content over as starting Norms/Safeguards in the new canvas, in addition to the feature-specific ones, clearly marked as coming from `spdd/norms.md`. Never create or edit this file — it's team-maintained, read-only for this skill.
 - **Identify risk and ambiguity.** Actively look for ambiguous domain concepts, unclear boundaries, and risky assumptions in the feature description — don't wait for them to surface incidentally while filling the template. Feed what you find into the `⚠️ Confirm:` lines and the Safeguards section.
 
 ### Step 8 — Determine layers

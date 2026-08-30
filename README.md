@@ -114,6 +114,8 @@ Separately, whenever code that already has a spec gets refactored **outside** th
 
 Compares the current code against `spdd/specs/<domain>.md` and updates Entities/Structure/Operations/Norms to match. It never touches the `WHEN/THEN` Requirements on its own — if the diff looks like it changes behavior, it stops and tells you to use `/spdd-canvas` instead.
 
+> **Global norms:** create `spdd/norms.md` in your project root (see `spdd-canvas/assets/template-norms.md` for a starting template) to declare team-wide, non-negotiable rules — architecture, security, code conventions, decisions that shouldn't be reopened canvas by canvas. `spdd-canvas` always reads it and carries its rules into every new canvas as starting Norms/Safeguards; `spdd-verify` checks the implemented diff against it, not just against the canvas at hand. This file is the team's responsibility to keep current — no skill creates or edits it, only reads it.
+
 > **Migrating from `docs/prompts/`:** if you installed an earlier version of these skills, run `/spdd-migrate` once in that project. It moves canvases from `docs/prompts/SPDD-*.md` into `spdd/changes/SPDD-.../canvas.md`, rewrites Acceptance Criteria/Safeguards into `WHEN/THEN`, keeps each canvas's original `Status` (an old `Implemented` canvas stays `Implemented` — run `/spdd-verify` on it whenever you want it folded into `spdd/specs/`), and updates the guard hook to the new path. It's non-destructive and idempotent: the original files are left in place unless you confirm deletion, and running it again skips whatever was already migrated.
 
 ## Other agents

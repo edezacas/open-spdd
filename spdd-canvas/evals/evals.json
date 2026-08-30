@@ -81,6 +81,17 @@
         "The skill does not ask about running spdd-sync",
         "The skill proceeds to generate and save the canvas normally"
       ]
+    },
+    {
+      "id": 50,
+      "prompt": "/spdd-canvas [describe a new feature for a project that has a spdd/norms.md with at least one concrete rule]",
+      "expected_output": "The skill reads spdd/norms.md and carries its rules over into the new canvas's Norms/Safeguards section, clearly attributed to spdd/norms.md, in addition to the feature-specific Norms/Safeguards.",
+      "setup": "Create spdd/norms.md at the project root with at least one concrete rule under one of its sections (e.g. Security).",
+      "assertions": [
+        "The generated canvas's Norms or Safeguards section includes the rule(s) from spdd/norms.md",
+        "Those carried-over rules are marked or attributed as coming from spdd/norms.md, distinct from feature-specific ones",
+        "spdd/norms.md itself is not created or modified by the skill"
+      ]
     }
   ]
 }

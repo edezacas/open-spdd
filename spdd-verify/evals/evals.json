@@ -138,6 +138,18 @@
         "The Diff-to-canvas check passes without blocking on test files",
         "The process continues to fold-back normally"
       ]
+    },
+    {
+      "id": 51,
+      "prompt": "/spdd-verify",
+      "expected_output": "spdd/norms.md exists and states a rule the implemented diff violates (e.g. a required architecture pattern or coding convention). The Diff-to-canvas check detects the violation, stops before fold-back, and reports the specific norm and file involved — even though the canvas itself has no matching Norm.",
+      "setup": "Create spdd/norms.md with a concrete, checkable rule under one of its sections. Implement a feature whose canvas doesn't restate that rule, but whose code violates it. Run spdd-verify.",
+      "assertions": [
+        "Step 7 reads spdd/norms.md and checks the diff against it",
+        "The report names the specific rule from spdd/norms.md that was violated and the file that violates it",
+        "The plan/canvas is not marked 'Status: Verified'",
+        "spdd/specs/ is not modified and no fold or archive occurs"
+      ]
     }
   ]
 }
