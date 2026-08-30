@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 9 (SPDD hook installation) requires Cl
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.2"
+  version: "1.3"
 ---
 
 ## Instructions
@@ -65,8 +65,8 @@ Before folding any result back to `spdd/specs/<domain>.md`, verify that the actu
    - If the diff violates a stated norm, treat it exactly like a canvas discrepancy: **stop and report** (e.g., "spdd/norms.md states: `<rule>` → Code real: `<file>` violates it").
 
 5. **Handle discrepancies:**
-   - **In foreground (interactive session with user turn):** Use `AskUserQuestion` to ask whether the discrepancy is intentional. If confirmed, continue to Step 8 and note the accepted discrepancy in the fold. If not confirmed or unclear, stop without folding.
-   - **In background (subagent under spdd-agent, no AskUserQuestion available):** Treat the discrepancy as a Step 6 failure — stop the process (never block waiting for a response), leave the plan/canvas unchanged, do not fold or archive, report the concrete gap, and append a line `⚠️ Confirm: <discrepancy detected during Diff-to-canvas check — review and confirm whether intentional>` to the plan/canvas for the foreground checkpoint in `spdd-agent` to resolve afterward.
+   - **In foreground (interactive session with user turn):** Use `AskUserQuestion` to ask whether the discrepancy is intentional. If confirmed, continue to Step 8 and note the accepted discrepancy in the fold. If not confirmed or unclear: revert the `Status: Verified` set in Step 6 back to its previous value (the plan/canvas was never actually fully verified), stop without folding, and report the concrete gap.
+   - **In background (subagent under spdd-agent, no AskUserQuestion available):** Treat the discrepancy as a Step 6 failure — stop the process (never block waiting for a response), revert the `Status: Verified` set in Step 6 back to its previous value, do not fold or archive, report the concrete gap, and append a line `⚠️ Confirm: <discrepancy detected during Diff-to-canvas check — review and confirm whether intentional>` to the plan/canvas for the foreground checkpoint in `spdd-agent` to resolve afterward.
 
 If everything passes (diff is coherent or user confirms discrepancies), continue to Step 8.
 
