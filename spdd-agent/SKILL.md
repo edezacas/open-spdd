@@ -6,7 +6,7 @@ compatibility: Works with any agent. Per-phase model selection and subagent isol
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.5"
+  version: "1.6"
 ---
 
 ## Instructions
@@ -20,6 +20,22 @@ your response and wait for the user's reply before continuing — same capabilit
 treatment already applied to model selection (Step 1) and subagent detection (Step 2). This does
 not affect the never-block rule for background subagents (Step 3), which correctly assumes no
 question mechanism of any kind is available there.
+
+### Decision transparency
+
+Whenever this skill resolves a choice on its own — without a blocking `AskUserQuestion` turn — show it to the user with one short, visible line, immediately before acting on it:
+
+```
+[decisión automática] <qué decidió> — <por qué>
+```
+
+This applies to every foreground autonomous decision in this flow: the routing choice (Step 0, direct route only — folded into its existing transparency line below) and the isolation-mode detection (Step 2). It does not apply inside a background subagent (Step 3), which has no output channel of its own for this — its pending decisions still surface as `⚠️ Confirm:` lines per the never-block rule.
+
+Reserve `⚠️ Confirm:` — which blocks and requires a real, foreground `AskUserQuestion` — for:
+
+- Business-rule ambiguity the agent cannot resolve on its own.
+- Any action with a real side effect: installing the SPDD guard hook, writing configuration, deleting or overwriting an existing file.
+- A diff-vs-canvas discrepancy surfaced by `spdd-verify`'s diff-to-canvas check (Step 8 below).
 
 ### Step 0 — Classify the request and route the change
 
@@ -45,7 +61,7 @@ Before starting the canvas phase, analyze the user's description to determine wh
 
 If the direct route is chosen:
 
-1. Display the transparency line: `Ruta directa: <reason> → implemento sin canvas.` (where reason briefly explains the decision).
+1. Display the transparency line: `[decisión automática] Ruta directa: <reason> → implemento sin canvas.` (where reason briefly explains the decision).
 2. Do **not** bootstrap the model configuration (Step 1 below) — direct route does not launch subagents.
 3. Implement the changes directly (using Write, Edit, and Bash as needed for this skill).
 4. Run the test suite for the affected area via `Bash`. If tests fail, report the failure and do not update the spec — leave the decision to revert or fix to the user.
@@ -93,6 +109,8 @@ The last column is one worked example, not the framework's default — any host 
 ### Step 2 — Detect subagent support
 
 Check whether the current host exposes a mechanism to launch an isolated subagent with a model override — in Claude Code, the `Agent` tool (`subagent_type` + `model`); in opencode, the Task tool with an `agent`/`model` field; other hosts may name this differently but the shape is the same: spawn an isolated worker, pick its model, give it a prompt. If such a mechanism exists, use **Isolated mode** (Step 3). If it doesn't, use **Inline mode** (Step 3-alt).
+
+Display the transparency line for this choice before Step 3/3-alt runs: `[decisión automática] Modo aislado — el host expone un mecanismo de subagentes con override de modelo.` or `[decisión automática] Modo inline — el host no expone mecanismo de subagentes aislables; se pierde selección de modelo por fase.`
 
 ### Step 3 — Isolated mode: phase invocation contract
 

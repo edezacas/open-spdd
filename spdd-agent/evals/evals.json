@@ -178,6 +178,17 @@
         "~/.config/spdd/config.json is created via the first-run bootstrap flow, since the route chosen is complete",
         "No transparency line 'Ruta directa:' appears"
       ]
+    },
+    {
+      "id": 47,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "Before launching the canvas phase, the skill silently resolves Isolated vs. Inline mode (Step 2) and now surfaces that choice as a visible '[decisión automática]' line, per the general decision-transparency rule — distinct from the '⚠️ Confirm:' lines reserved for blocking, side-effecting, or business-ambiguous decisions.",
+      "setup": "Ensure ~/.config/spdd/config.json already has valid values for all six phases (skip bootstrap noise), and the host has a subagent-launching mechanism available (isolated mode applies).",
+      "assertions": [
+        "The response contains a line starting with '[decisión automática]' before the canvas phase is launched",
+        "That line reports the Isolated-mode choice and a brief reason (host exposes a subagent mechanism)",
+        "No '⚠️ Confirm:' line is used for this mode decision — it is not a blocking question"
+      ]
     }
   ]
 }
