@@ -59,6 +59,28 @@
         "At least one acceptance criterion is marked MODIFIED and references the existing spec",
         "If no domain can be confidently inferred, the report mentions falling back to spdd/specs/general.md"
       ]
+    },
+    {
+      "id": 48,
+      "prompt": "/spdd-canvas [describe a new feature for a domain whose spdd/specs/<domain>.md exists but predates recent commits touching that domain's source folder]",
+      "expected_output": "Before generating the canvas, the skill detects that the spec is older than recent commits to the domain's source folder, stops, and asks the user whether to run spdd-sync first or continue anyway.",
+      "setup": "Create spdd/specs/<domain>.md and commit it. Then make and commit at least one further change to a file under that domain's source folder, so the spec's last commit predates the domain's latest commit.",
+      "assertions": [
+        "Before generating the canvas, the skill reports that spdd/specs/<domain>.md is older than recent commits to the domain",
+        "The skill asks the user to choose between running spdd-sync first or continuing anyway, before writing the canvas file",
+        "No canvas file is written under spdd/changes/ before the user answers",
+        "If the user chooses to continue anyway, the final canvas or report notes the spec staleness"
+      ]
+    },
+    {
+      "id": 49,
+      "prompt": "/spdd-canvas [describe a new feature for a domain whose spdd/specs/<domain>.md exists and is already up to date with the domain's latest commits]",
+      "expected_output": "The freshness check finds no domain commits newer than the spec and proceeds straight to generating the canvas without asking about spdd-sync.",
+      "setup": "Create spdd/specs/<domain>.md and commit it after all existing changes to that domain's source folder, so no domain commit postdates the spec.",
+      "assertions": [
+        "The skill does not ask about running spdd-sync",
+        "The skill proceeds to generate and save the canvas normally"
+      ]
     }
   ]
 }

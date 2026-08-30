@@ -18,7 +18,7 @@ spdd-agent/SKILL.md                   # orchestrates canvas → design → imple
 spdd-agent/evals/evals.json           # evals 31–38: config request, bootstrap, invalid-config repair, never-block rule, checkpoint gate, dependency order, divergence reopen, inline fallback
 spdd-canvas/SKILL.md                  # REASONS canvas generator — /spdd-canvas
 spdd-canvas/assets/template-reasons.md
-spdd-canvas/evals/evals.json          # evals 1–3, 9–10: guard, generation quality, hook, applicability guard, spec read
+spdd-canvas/evals/evals.json          # evals 1–3, 9–10, 48–49: guard, generation quality, hook, applicability guard, spec read, freshness check
 spdd-design/SKILL.md                  # canvas → independent implementation plans — /spdd-design
 spdd-design/assets/template-plan.md
 spdd-design/evals/evals.json          # evals 11–14, 29: single plan, split plans, dependencies, shared touchpoints, existing-plan guard
