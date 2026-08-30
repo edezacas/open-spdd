@@ -14,10 +14,10 @@
     {
       "id": 32,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "On first run with no existing config, the skill resolves the model for all six phases via AskUserQuestion (grouped into 1-2 calls) and writes ~/.claude/spdd/config.json before touching the feature request at all.",
-      "setup": "Ensure ~/.claude/spdd/config.json does not exist before running.",
+      "expected_output": "On first run with no existing config, the skill resolves the model for all six phases via AskUserQuestion (grouped into 1-2 calls) and writes ~/.config/spdd/config.json before touching the feature request at all.",
+      "setup": "Ensure ~/.config/spdd/config.json does not exist before running.",
       "assertions": [
-        "~/.claude/spdd/config.json exists after the run, with all six phases set to one of opus/sonnet/haiku/fable",
+        "~/.config/spdd/config.json exists after the run, with all six phases set to one of opus/sonnet/haiku/fable",
         "The model selection is resolved via AskUserQuestion before any file is written under spdd/changes/",
         "The canvas phase (and everything after it) only starts once the config file exists"
       ]
@@ -26,10 +26,10 @@
       "id": 33,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
       "expected_output": "The config file exists but one phase has an empty/missing model value. The skill treats only that value as absent, re-asks for that phase alone via AskUserQuestion, and leaves the other five untouched. A non-empty free-text identifier (even one that isn't opus/sonnet/haiku/fable, e.g. a provider-qualified id for a non-Claude-Code host) is accepted as-is and never treated as invalid.",
-      "setup": "Create ~/.claude/spdd/config.json with a valid model for five phases and an empty string (or missing key) for one phase (e.g. canvas).",
+      "setup": "Create ~/.config/spdd/config.json with a valid model for five phases and an empty string (or missing key) for one phase (e.g. canvas).",
       "assertions": [
         "AskUserQuestion is called only for the phase with the empty/missing value, not for the other five",
-        "The five already-valid phases in ~/.claude/spdd/config.json are unchanged after the run",
+        "The five already-valid phases in ~/.config/spdd/config.json are unchanged after the run",
         "The corrected phase's value is a non-empty string"
       ]
     },
@@ -37,7 +37,7 @@
       "id": 34,
       "prompt": "hay que implementar una función que calcule el descuento aplicable a un pedido según su importe, sin que existan reglas de descuento documentadas todavía",
       "expected_output": "The canvas phase runs as a background subagent with no AskUserQuestion available. It never blocks: it takes the suggested default for the undocumented discount-rule decision and records it as a '⚠️ Confirm:' line, and it does not install the SPDD guard hook (a side-effect action) if missing, leaving that as a separate '⚠️ Confirm:' instead.",
-      "setup": "Ensure ~/.claude/spdd/config.json already has valid values for all six phases (skip bootstrap), and the target project has no .claude/settings.local.json.",
+      "setup": "Ensure ~/.config/spdd/config.json already has valid values for all six phases (skip bootstrap), and the target project has no .claude/settings.local.json.",
       "assertions": [
         "canvas.md is written and contains at least one '⚠️ Confirm:' line for the undocumented discount-rule decision",
         ".claude/settings.local.json is not created or modified during the canvas phase",

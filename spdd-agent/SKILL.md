@@ -6,7 +6,7 @@ compatibility: Works with any agent. Per-phase model selection and subagent isol
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.1"
+  version: "1.2"
 ---
 
 ## Instructions
@@ -20,7 +20,7 @@ Two kinds of input reach this skill:
 
 ### Step 1 — Load or bootstrap the model configuration
 
-Config lives at `~/.claude/spdd/config.json` — global, shared across projects, not versioned in any repo (same convention as `~/.claude/skills/` and `~/.claude/CLAUDE.md`).
+Config lives at `~/.config/spdd/config.json` — the XDG user-config convention, global and shared across projects, not versioned in any repo, and not tied to any single host (Claude Code, opencode, codex, or any other agent reads and writes the same file).
 
 ```json
 {
@@ -35,7 +35,7 @@ Only `canvas`, `design`, `implement`, and `verify` are ever used by this skill's
 
 Each value is a free-text model identifier in whatever form the current host's subagent mechanism accepts — not a fixed enum. On Claude Code that's `opus` / `sonnet` / `haiku` / `fable`; on a host like opencode it's a provider-qualified id (e.g. `anthropic/claude-sonnet-4-5`, `openai/gpt-5`) or whatever string that host's model-override field expects. This skill never validates the string against a host-specific list — it only checks that a value is present and non-empty, and passes it through verbatim to the subagent call in Step 3.
 
-1. If the file doesn't exist: this is first-run bootstrap. Before touching the user's feature request, propose a default model per phase (table below) via `AskUserQuestion`, grouped into 1–2 calls of up to 4 questions each. On Claude Code, offer `opus` / `sonnet` / `haiku` / `fable` as options with the table's suggestion pre-marked "(Recommended)". On any other host, offer the table's suggested tier (see column) as the recommended option and rely on `AskUserQuestion`'s free-text "Other" for any different identifier the user wants. Write the confirmed selections to `~/.claude/spdd/config.json` (create `~/.claude/spdd/` if needed).
+1. If the file doesn't exist: this is first-run bootstrap. Before touching the user's feature request, propose a default model per phase (table below) via `AskUserQuestion`, grouped into 1–2 calls of up to 4 questions each. On Claude Code, offer `opus` / `sonnet` / `haiku` / `fable` as options with the table's suggestion pre-marked "(Recommended)". On any other host, offer the table's suggested tier (see column) as the recommended option and rely on `AskUserQuestion`'s free-text "Other" for any different identifier the user wants. Write the confirmed selections to `~/.config/spdd/config.json` (create `~/.config/spdd/` if needed).
 2. If the file exists: read it and check each of the six values is a non-empty string. Treat a missing or empty value as absent and re-ask only for that phase (same `AskUserQuestion` mechanism), then write the corrected file back.
 
 | Phase | Suggested tier | Claude Code default | Why |
