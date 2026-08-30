@@ -6,7 +6,7 @@ compatibility: Works with any agent. Per-phase model selection and subagent isol
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.4"
+  version: "1.5"
 ---
 
 ## Instructions
@@ -21,12 +21,40 @@ treatment already applied to model selection (Step 1) and subagent detection (St
 not affect the never-block rule for background subagents (Step 3), which correctly assumes no
 question mechanism of any kind is available there.
 
-### Step 0 — Classify the request
+### Step 0 — Classify the request and route the change
 
 Two kinds of input reach this skill:
 
-- **A feature description** ("hay que implementar X", "add support for Y") → go to Step 1.
-- **A request about the model configuration itself** ("usa spdd-agent para ver/cambiar el modelo de cada fase", "qué modelo usa implement", "cambia verify a sonnet") → go to Step 2's "Explicit config request" path and stop there; do not start the feature flow.
+- **A feature description** ("hay que implementar X", "add support for Y") → proceed to routing (below).
+- **A request about the model configuration itself** ("usa spdd-agent para ver/cambiar el modelo de cada fase", "qué modelo usa implement", "cambia verify a sonnet") → go to Step 1's "Explicit config request" path and stop there; do not start the feature flow.
+
+**Routing decision** (feature description path only):
+
+Before starting the canvas phase, analyze the user's description to determine whether this is a **direct route** (trivial change) or **complete route** (full flow):
+
+- **Direct route** (implement without canvas → design → verify): Activates when:
+  - The change touches **1–2 files**, is mechanical or of evident scope, **and** there is no business or architectural ambiguity.
+  - When in doubt between direct and complete, **always choose complete** — the complete route is the safe default.
+  - Example: "fix the typo in file X, line Y" or "add a missing export to module A".
+
+- **Complete route** (canvas → design → implement → verify): Activates when:
+  - The change touches **3+ files**, requires understanding multiple system parts, **or** there is any business/architectural ambiguity.
+  - This is the status quo flow (Steps 1–9 below).
+
+**Direct route execution** (if chosen):
+
+If the direct route is chosen:
+
+1. Display the transparency line: `Ruta directa: <reason> → implemento sin canvas.` (where reason briefly explains the decision).
+2. Do **not** bootstrap the model configuration (Step 1 below) — direct route does not launch subagents.
+3. Implement the changes directly (using Write, Edit, and Bash as needed for this skill).
+4. Run the test suite for the affected area via `Bash`. If tests fail, report the failure and do not update the spec — leave the decision to revert or fix to the user.
+5. If tests pass, annotate a summary in `spdd/specs/<domain>.md` (create the file or domain section if absent). Use `<domain>` inferred from file paths (e.g., `src/<domain>/...`); fall back to `spdd/specs/general.md` if no clear domain is evident.
+6. Stop and report completion — do not proceed to Steps 1–9.
+
+**Complete route execution** (if chosen):
+
+Proceed to Step 1 (bootstrap) and continue through Steps 2–9 as described below.
 
 ### Step 1 — Load or bootstrap the model configuration
 
