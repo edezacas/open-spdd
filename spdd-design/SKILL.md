@@ -5,7 +5,7 @@ license: Apache-2.0
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.2"
+  version: "1.3"
 ---
 
 ## Instructions
@@ -33,7 +33,7 @@ Look at Entities, Structure, and Operations together to find natural boundaries:
 
 ### Step 5 — Decide: one plan or many
 
-**Do not force a split.** If the work is intrinsically sequential (later steps depend on earlier ones touching the same core files) or everything funnels through one shared module, emit a single plan covering the whole canvas. Only split when the groups found in Step 4 are genuinely separable.
+**Do not force a split.** If the work is intrinsically sequential (later steps depend on earlier ones touching the same core files) or everything funnels through one shared module, emit a single plan covering the whole canvas. Only split when the groups found in Step 4 are genuinely separable. If every group found in Step 4 applies the same Operation type homogeneously to files of the same kind, emit a single plan with one row per file instead of splitting — even if their Structure paths don't overlap. Reserve real splitting for groups that differ in Operation type, or that are meant to be handed to different agents/people.
 
 ### Step 6 — Read the base template
 

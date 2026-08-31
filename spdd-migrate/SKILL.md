@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 4 (hook rewrite) requires Claude Code.
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.0"
+  version: "1.1"
 ---
 
 ## Instructions
@@ -22,6 +22,8 @@ For each `docs/prompts/SPDD-*.md` file found:
 1. Read its `Status` header (`Draft`, `Confirmed`, or `Implemented`).
 2. **Idempotency check**: if `spdd/changes/SPDD-<same-slug>/canvas.md` or `spdd/archive/SPDD-<same-slug>/canvas.md` already exists, skip this file and note it as already migrated.
 3. Reformat Acceptance Criteria and Safeguards edge cases from freeform checkboxes/bullets into `WHEN/THEN` scenarios, preserving the original meaning as closely as possible. If a rewrite is ambiguous, add `⚠️ Confirm:` asking the user to double-check the rewrite didn't change the intent — never guess silently.
+
+   > **Language note:** Write the reformatted Acceptance Criteria/Safeguards content in English, regardless of the conversation's language.
 4. Write the result to `spdd/changes/SPDD-<same-date-slug>/canvas.md`, **keeping the original `Status` exactly as it was** — including `Implemented`. Do not promote it to `Verified` and do not fold it into `spdd/specs/` or move it to `spdd/archive/`; that only happens when the user later runs `spdd-verify` on it, same as any other feature.
 5. Do not delete the original file in this step — migration is non-destructive by default.
 

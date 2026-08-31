@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 9 (SPDD hook and subagent cache TTL se
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.6"
+  version: "1.7"
 ---
 
 ## Instructions
@@ -32,6 +32,8 @@ Confirm, for the scope being verified:
 ### Step 4 — Put the implementation to the test
 
 For every Safeguards edge case (`WHEN/THEN` scenario) in scope that isn't already covered by an existing test, write a test targeting exactly that scenario, then run it. Run the full test suite for the affected area.
+
+If the scope includes a `SKILL.md` file with its own `evals/evals.json`, either run that eval harness (see this repo's own `CLAUDE.md` "Evaluating skills" section for the procedure) or, in a foreground session, ask via `AskUserQuestion` whether a lighter diff-based check is acceptable instead. In background (no `AskUserQuestion`), default to running the harness if the scope is non-trivial, or leave a `⚠️ Confirm:` note if running it isn't feasible in that context — never silently treat a diff read as equivalent to re-running the evals.
 
 ### Step 5 — Report
 
@@ -67,6 +69,7 @@ Before folding any result back to `spdd/specs/<domain>.md`, verify that the actu
 5. **Handle discrepancies:**
    - **In foreground (interactive session with user turn):** Use `AskUserQuestion` to ask whether the discrepancy is intentional. If confirmed, continue to Step 8 and note the accepted discrepancy in the fold. If not confirmed or unclear: revert the `Status: Verified` set in Step 6 back to its previous value (the plan/canvas was never actually fully verified), stop without folding, and report the concrete gap.
    - **In background (subagent under spdd-agent, no AskUserQuestion available):** Treat the discrepancy as a Step 6 failure — stop the process (never block waiting for a response), revert the `Status: Verified` set in Step 6 back to its previous value, do not fold or archive, report the concrete gap, and append a line `⚠️ Confirm: <discrepancy detected during Diff-to-canvas check — review and confirm whether intentional>` to the plan/canvas for the foreground checkpoint in `spdd-agent` to resolve afterward.
+   - This foreground/background branch is intentional here specifically: it's needed to choose between a real `AskUserQuestion` and a `⚠️ Confirm:` fallback for diff discrepancies — it's not an inconsistency versus other skills, which rely entirely on `spdd-agent`'s injected never-block rule.
 
 If everything passes (diff is coherent or user confirms discrepancies), continue to Step 8.
 

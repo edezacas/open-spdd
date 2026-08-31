@@ -16,6 +16,15 @@ downstream tasks reading these documents as context spend fewer reasoning tokens
 - WHEN `spdd-design` reads a canvas (already in English) and generates one or more `plan-*.md` files
 - THEN the new content it authors (not just what is copied from the canvas) stays in English — it does not reintroduce Spanish or any other language even if the conversation with the user is in a different language
 
+**User story:**
+As a team maintaining `open-spdd`, we want `spdd-design` to avoid splitting genuinely homogeneous
+work into one plan per file, so that mechanical, same-shaped changes across many files aren't
+handed to `spdd-implement` as artificial separate plans.
+
+**Scenario: `spdd-design` merges homogeneous same-type edits into one plan**
+- WHEN every group found in Step 4 applies the same Operation type to files of the same kind (e.g. the same prose trim repeated across N `SKILL.md` files), even though their Structure paths don't overlap
+- THEN Step 5 emits a single plan with one row per file instead of one plan per file — splitting stays reserved for work that is genuinely separable (different Operation types, or work meant for different people/agents)
+
 ---
 
 ## Entities
@@ -34,12 +43,22 @@ downstream tasks reading these documents as context spend fewer reasoning tokens
 | Template note | `> Language: ...` in `template-plan.md` | Explicitly declares the document is written in English, with no translate-to-detected-language instruction |
 | Note | Language defensive note in `spdd-design/SKILL.md` Step 7 | Placed right before the plan-generation instructions; states plan content (names, headings, all prose in Operations/Entities/Structure, and any notes added) must be in English regardless of the canvas's or the user's conversation language |
 | Boundary | Persisted document vs. conversational reply | The English-only rule applies only to `plan-*.md` content; conversational replies to the user in chat still follow the conversation's language rules (e.g. the user's global `CLAUDE.md` instructions) |
+| Homogeneity criterion | `spdd-design/SKILL.md` (Step 5 — "Decide: one plan or many") | Sentence(s) reserving real splitting for groups that differ in Operation type or are meant for different agents/people; merges same-type/same-kind groups into a single plan with one row per file |
+
+---
+
+## Operations
+
+| Type | Identifier | Description |
+|------|-----------|-------------|
+| Rule | Homogeneity-based single-plan decision (Step 5) | If every group found in Step 4 applies the same Operation type to files of the same kind, emit one plan with one row per file instead of splitting, even if their Structure paths don't overlap |
 
 ---
 
 ## Norms
 
 - Simplicity First: the language rule is a fixed, unconditional instruction — no conditional logic or per-project configuration.
-- Increment `metadata.version` of `spdd-design/SKILL.md` whenever its instructions are edited (currently bumped 1.0 → 1.1 for this change).
+- Increment `metadata.version` of `spdd-design/SKILL.md` whenever its instructions are edited (currently at 1.3, cumulative across changes).
 - Do not translate historical content already written in another language (e.g. plans generated before this change) — the rule is forward-only.
 - New prose `spdd-verify` adds while folding a change into this spec, or during its Diff-to-canvas check, must also be in English (see `spdd-verify/SKILL.md`'s own language note near Steps 7–8).
+- The homogeneity criterion requires both the same Operation type AND the same file kind — groups that are small but differ in Operation type must still be split.

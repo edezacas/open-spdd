@@ -152,6 +152,29 @@
       ]
     },
     {
+      "id": 60,
+      "prompt": "/spdd-verify",
+      "expected_output": "The verification scope includes a SKILL.md file that ships its own evals/evals.json, and the change in scope is non-trivial (adds new decision logic/a branch). In a foreground session, the skill asks via AskUserQuestion whether a lighter diff-based check is acceptable instead of running the harness; in background, it defaults to actually running the harness.",
+      "setup": "Implement a plan that modifies a SKILL.md file which has its own evals/evals.json, adding a new conditional branch to one of its steps. Run spdd-verify once in a foreground session and once as a background subagent under spdd-agent.",
+      "assertions": [
+        "Foreground run: AskUserQuestion is used to ask whether a lighter diff-based check is acceptable",
+        "Background run: the eval harness is actually run rather than only reading the diff",
+        "Neither run silently treats a diff read alone as equivalent to re-running the evals",
+        "Step 4 reports which path (harness run vs. diff-based check) was taken and why"
+      ]
+    },
+    {
+      "id": 61,
+      "prompt": "/spdd-verify",
+      "expected_output": "The verification scope contains no SKILL.md file at all (pure application/library code). The new eval-harness branch in Step 4 never triggers — Step 4 behaves exactly as before this change.",
+      "setup": "Implement a plan whose Structure only touches non-SKILL.md files (e.g. a script or config file), then run spdd-verify.",
+      "assertions": [
+        "No AskUserQuestion about eval harnesses vs. diff-based checks is raised",
+        "No evals/evals.json file is read or executed as part of this verification",
+        "Step 4 completes using only the existing Safeguards-test-writing and test-suite-running behavior"
+      ]
+    },
+    {
       "id": 56,
       "prompt": "/spdd-verify",
       "expected_output": "During the Diff-to-canvas check (Step 7), the skill detects a discrepancy and writes a new '⚠️ Confirm:' discrepancy note directly into the plan/canvas. Even though the user's conversation with the agent is in Spanish, the note itself is written in English, consistent with the rest of the persisted document.",

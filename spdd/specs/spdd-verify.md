@@ -38,6 +38,14 @@ a passing test can't hide a silent divergence between what was agreed and what w
 - THEN that new prose (not just content copied from the source canvas/plan) is written in
   English, consistent with the rest of the document it's added to
 
+**Scenario: verification scope includes a `SKILL.md` with its own `evals/evals.json`**
+- WHEN the scope being verified (Step 4, "Put the implementation to the test") includes a `SKILL.md` file that ships its own `evals/evals.json`
+- THEN `spdd-verify` either runs that eval harness, or — in a foreground session — asks via `AskUserQuestion` whether a lighter diff-based check is acceptable instead; in background (no `AskUserQuestion` available), it defaults to running the harness when the change is non-trivial, or leaves a `⚠️ Confirm:` note if running it isn't feasible — it never silently treats a diff read as equivalent to re-running the evals
+
+**Scenario: eval-harness branch does not fire on non-`SKILL.md` scope**
+- WHEN the verification scope contains no `SKILL.md` file at all
+- THEN Step 4 behaves exactly as before this change — no eval harness is considered and no question is raised about it
+
 **Out of scope (deliberate):**
 - Improvement 4 (`spdd/norms.md` as an additional verification source) — the Diff-to-canvas check validates only against the source canvas/plan, not against project-wide norms.
 - No static code analysis is introduced (linters, AST, etc.) — the diff-vs-canvas comparison relies on the agent's own reasoning when reading the diff, the same way `spdd-canvas` already does to generate the canvas.
@@ -59,6 +67,8 @@ a passing test can't hide a silent divergence between what was agreed and what w
 | Type | Identifier | Description |
 |------|-----------|-------------|
 | Step | "Diff-to-canvas check" (Step 7, between Step 6 "Mark status" and Step 8 "Fold back and archive") | Gets the real diff of the files modified in this implementation (`git diff` for uncommitted changes; `git log -p`/`git log --stat` over the paths declared in Structure/Shared touchpoints of the plan/canvas if already committed) and compares it point by point against the Operations and Norms of the canvas/plan being verified |
+| Branch | Eval-harness check (Step 4, end) | If scope includes a `SKILL.md` with its own `evals/evals.json`: run the harness, or (foreground) ask via `AskUserQuestion` whether a lighter diff-based check suffices; (background) run the harness if non-trivial, else leave `⚠️ Confirm:` |
+| Note | Foreground/background branch clarification (Step 7, point 5) | States that the discrepancy-handling branch there is intentional — needed to choose between a real `AskUserQuestion` and a `⚠️ Confirm:` fallback for diff discrepancies specifically — not an inconsistency versus other skills, which rely entirely on `spdd-agent`'s injected never-block rule |
 | Check | Operations coverage | Every Operation in the canvas/plan must have corresponding code in the diff; if any is missing, it's a blocking discrepancy |
 | Check | Diff scope | No file/module touched in the diff may fall outside Structure, Shared touchpoints, or Operations of the canvas/plan; if it does, it's a blocking discrepancy — except test files that `spdd-verify`'s own Step 4 created during this same verification, which are exempt from the check since they're an expected byproduct of verification, not of the original implementation diff |
 | Gate | Discrepancy in a session with a live turn (foreground) | Uses `AskUserQuestion` to ask the human whether the discrepancy is intentional; if confirmed, continues to the fold, annotating the accepted discrepancy; if not confirmed or answered without clarity, stops the process without folding |
@@ -72,6 +82,7 @@ a passing test can't hide a silent divergence between what was agreed and what w
 
 - Simplicity First: the Diff-to-canvas check introduces no static analysis or external tools — only diff reading and the agent's own reasoning.
 - The Diff-to-canvas check (Step 7) complements Step 3 (Structural check) without duplicating it: Step 3 still checks declared-path coverage; Step 7 uses the real git diff as objective evidence.
-- Increment `metadata.version` in `spdd-verify/SKILL.md` on any edit to its instructions.
+- Increment `metadata.version` in `spdd-verify/SKILL.md` on any edit to its instructions (currently at 1.7, cumulative across changes).
 - Never fold into `spdd/specs/<domain>.md` while an unresolved discrepancy exists — neither in foreground without explicit confirmation, nor in background under `spdd-agent`.
 - New prose `spdd-verify` writes during the Diff-to-canvas check (Step 7) or the fold-to-spec step (Step 8) must be in English, regardless of the conversation's language.
+- "Non-trivial" (for the background default on the eval-harness branch) means anything beyond a single-sentence/single-line prose edit with no new decision logic, branch, or exact string added/removed.

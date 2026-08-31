@@ -47,6 +47,18 @@
       ]
     },
     {
+      "id": 62,
+      "prompt": "/spdd-migrate (the user gives spdd-migrate its instructions in Spanish, e.g. 'migra las canvases viejas')",
+      "expected_output": "The old canvas file docs/prompts/SPDD-*.md is written in Spanish, and the conversation with the agent is also in Spanish. The reformatted WHEN/THEN scenarios in the new spdd/changes/SPDD-slug/canvas.md stay entirely in English regardless.",
+      "setup": "Create docs/prompts/SPDD-2026-01-01-0900-viejo.md with Acceptance Criteria and Safeguards written in Spanish freeform bullets. Run /spdd-migrate with instructions given in Spanish.",
+      "assertions": [
+        "The reformatted WHEN/THEN scenarios in the new canvas.md are written entirely in English",
+        "No Spanish words appear in the newly authored WHEN/THEN prose",
+        "Content that is copied verbatim rather than reformatted is not silently translated as a side effect",
+        "The Step 2 language note in spdd-migrate/SKILL.md is followed regardless of the source file's or conversation's language"
+      ]
+    },
+    {
       "id": 28,
       "prompt": "/spdd-migrate",
       "expected_output": "There is no docs/prompts/ folder at all. The skill stops cleanly and says there's nothing to migrate, without creating any spdd/ folders.",

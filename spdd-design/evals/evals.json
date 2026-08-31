@@ -59,6 +59,18 @@
       ]
     },
     {
+      "id": 59,
+      "prompt": "/spdd-design",
+      "expected_output": "For a canvas where every group found in Step 4 applies the same Operation type to files of the same kind (e.g. the same prose trim repeated across N SKILL.md files), the skill emits a single plan with one row per file instead of one plan per file, even though the files' Structure paths don't overlap.",
+      "setup": "Generate a canvas with /spdd-canvas whose Operations table lists the same 'Modify' operation type (e.g. trim a redundant sentence) repeated across 3 unrelated SKILL.md files with non-overlapping Structure paths.",
+      "assertions": [
+        "Exactly one file is created under plans/",
+        "The single plan's Operations table has one row per affected file",
+        "The plan's Structure section lists all N files",
+        "The report explains the single-plan decision by citing the homogeneity criterion (same Operation type, same file kind)"
+      ]
+    },
+    {
       "id": 58,
       "prompt": "/spdd-design (canvas already in English; the user gives spdd-design additional instructions in Spanish while it runs, e.g. 'agrupa todo en un solo plan')",
       "expected_output": "The generated plan-*.md stays entirely in English — plan name, section headings, and all newly authored prose in Operations/Entities/Structure — even though the user's mid-run instructions were in Spanish. No mixing of Spanish and English within the document.",
