@@ -4,25 +4,26 @@
     {
       "id": 24,
       "prompt": "/spdd-migrate",
-      "expected_output": "An old Draft canvas with freeform checkboxes is migrated to spdd/changes/SPDD-<slug>/canvas.md with Acceptance Criteria and Safeguards rewritten as WHEN/THEN scenarios, Status still Draft.",
-      "setup": "Create docs/prompts/SPDD-2026-01-01-0900-old-feature.md in the old flat format (checkboxes, no WHEN/THEN), Status: Draft.",
+      "expected_output": "An old Draft canvas with freeform checkboxes and no paired docs/features/ doc is migrated to spdd/changes/SPDD-<slug>/canvas.md with Acceptance Criteria and Safeguards rewritten as WHEN/THEN scenarios, Status still Draft.",
+      "setup": "Create docs/prompts/SPDD-2026-01-01-0900-old-feature.md in the old flat format (checkboxes, no WHEN/THEN), Status: Draft. No docs/features/old-feature.md exists.",
       "assertions": [
         "spdd/changes/SPDD-2026-01-01-0900-old-feature/canvas.md exists",
         "Acceptance Criteria and Safeguards edge cases in the new file are written as WHEN/THEN scenarios",
         "The new canvas has 'Status: Draft'",
-        "The original docs/prompts/SPDD-2026-01-01-0900-old-feature.md file still exists, unmodified"
+        "The original docs/prompts/SPDD-2026-01-01-0900-old-feature.md file still exists, unmodified",
+        "No file is created under spdd/archive/ or spdd/specs/ for this canvas"
       ]
     },
     {
       "id": 25,
       "prompt": "/spdd-migrate",
-      "expected_output": "An old canvas with Status: Implemented is migrated keeping that exact status — it is NOT promoted to Verified, not folded into spdd/specs/, and not moved to spdd/archive/.",
-      "setup": "Create docs/prompts/SPDD-2026-01-01-0900-done-feature.md with Status: Implemented.",
+      "expected_output": "An old canvas with Status: Implemented but no paired docs/features/ doc is migrated straight to spdd/archive/ with Status promoted to Verified — since there's no feature doc to fold, no spdd/specs/ file is created, and the report flags the missing fold and suggests spdd-sync.",
+      "setup": "Create docs/prompts/SPDD-2026-01-01-0900-done-feature.md with Status: Implemented. No docs/features/done-feature.md exists.",
       "assertions": [
-        "spdd/changes/SPDD-2026-01-01-0900-done-feature/canvas.md exists with 'Status: Implemented'",
-        "No file is created under spdd/specs/",
-        "No folder is created under spdd/archive/",
-        "The report mentions the user can run spdd-verify on it when ready"
+        "spdd/archive/SPDD-2026-01-01-0900-done-feature/canvas.md exists with 'Status: Verified'",
+        "No file is created under spdd/changes/ for this canvas",
+        "No file is created under spdd/specs/ for this canvas",
+        "The report notes no docs/features/ doc was found to fold and suggests running spdd-sync if the code already reflects that behavior"
       ]
     },
     {
@@ -50,7 +51,7 @@
       "id": 62,
       "prompt": "/spdd-migrate (the user gives spdd-migrate its instructions in Spanish, e.g. 'migra las canvases viejas')",
       "expected_output": "The old canvas file docs/prompts/SPDD-*.md is written in Spanish, and the conversation with the agent is also in Spanish. The reformatted WHEN/THEN scenarios in the new spdd/changes/SPDD-slug/canvas.md stay entirely in English regardless.",
-      "setup": "Create docs/prompts/SPDD-2026-01-01-0900-viejo.md with Acceptance Criteria and Safeguards written in Spanish freeform bullets. Run /spdd-migrate with instructions given in Spanish.",
+      "setup": "Create docs/prompts/SPDD-2026-01-01-0900-viejo.md with Acceptance Criteria and Safeguards written in Spanish freeform bullets, Status: Draft, no paired docs/features/viejo.md. Run /spdd-migrate with instructions given in Spanish.",
       "assertions": [
         "The reformatted WHEN/THEN scenarios in the new canvas.md are written entirely in English",
         "No Spanish words appear in the newly authored WHEN/THEN prose",
@@ -61,11 +62,54 @@
     {
       "id": 28,
       "prompt": "/spdd-migrate",
-      "expected_output": "There is no docs/prompts/ folder at all. The skill stops cleanly and says there's nothing to migrate, without creating any spdd/ folders.",
-      "setup": "Run spdd-migrate in a project with no docs/prompts/ directory.",
+      "expected_output": "There is no docs/prompts/ folder and no docs/features/ folder at all. The skill stops cleanly and says there's nothing to migrate, without creating any spdd/ folders.",
+      "setup": "Run spdd-migrate in a project with neither a docs/prompts/ nor a docs/features/ directory.",
       "assertions": [
         "The response states there is nothing to migrate",
         "No spdd/ directory is created as a side effect"
+      ]
+    },
+    {
+      "id": 63,
+      "prompt": "/spdd-migrate",
+      "expected_output": "An old canvas with a paired docs/features/<slug>.md is archived (Status: Verified) AND its feature doc's content is folded into spdd/specs/<domain>.md, inferring the domain from the canvas's Structure section.",
+      "setup": "Create docs/prompts/SPDD-2026-01-01-0900-billing-export.md, Status: Implemented, Structure section listing files under src/billing/. Create docs/features/billing-export.md with What it does / Business rules / Flows / How it connects / Technical notes sections describing a billing export feature.",
+      "assertions": [
+        "spdd/archive/SPDD-2026-01-01-0900-billing-export/canvas.md exists with 'Status: Verified'",
+        "spdd/specs/billing.md exists and contains a Requirements section with at least one WHEN/THEN scenario derived from the feature doc",
+        "spdd/specs/billing.md contains the marker '<!-- spdd-migrate source: docs/features/billing-export.md -->'",
+        "No content is invented in the spec beyond what the feature doc's prose supports — any ambiguous mapping is marked with ⚠️ Confirm: instead of guessed"
+      ]
+    },
+    {
+      "id": 64,
+      "prompt": "/spdd-migrate",
+      "expected_output": "A docs/features/<slug>.md file with no paired docs/prompts/ canvas at all (orphaned) is still folded into spdd/specs/<domain>.md, inferring the domain from file paths in its own Technical notes section.",
+      "setup": "Create docs/features/orphan-report.md only (no docs/prompts/SPDD-*-orphan-report.md exists), with a Technical notes section mentioning files under src/reporting/.",
+      "assertions": [
+        "spdd/specs/reporting.md exists and contains content folded from docs/features/orphan-report.md",
+        "spdd/specs/reporting.md contains the marker '<!-- spdd-migrate source: docs/features/orphan-report.md -->'",
+        "No spdd/archive/ or spdd/changes/ folder is created for this file, since there was no canvas to migrate"
+      ]
+    },
+    {
+      "id": 65,
+      "prompt": "/spdd-migrate",
+      "expected_output": "Running the skill a second time after a docs/features/ doc was already folded into spdd/specs/ does not duplicate or re-generate that spec content.",
+      "setup": "Run spdd-migrate once successfully on a project with a docs/features/<slug>.md that gets folded into spdd/specs/<domain>.md, then run it again without changing anything.",
+      "assertions": [
+        "spdd/specs/<domain>.md still contains exactly one '<!-- spdd-migrate source: docs/features/<slug>.md -->' marker for that file, not two",
+        "The second run's report lists the feature doc as already migrated / skipped, not as newly folded"
+      ]
+    },
+    {
+      "id": 66,
+      "prompt": "/spdd-migrate",
+      "expected_output": "A canvas with Status: Confirmed (not Implemented) that nonetheless has a paired docs/features/<slug>.md is treated as closed — archived with Status: Verified and folded into spdd/specs/, per the 'Implemented OR paired feature doc' routing rule, not just the Status value alone.",
+      "setup": "Create docs/prompts/SPDD-2026-01-01-0900-edge-case.md with Status: Confirmed, and a paired docs/features/edge-case.md.",
+      "assertions": [
+        "spdd/archive/SPDD-2026-01-01-0900-edge-case/canvas.md exists with 'Status: Verified', not left in spdd/changes/",
+        "spdd/specs/<domain>.md contains content folded from docs/features/edge-case.md"
       ]
     }
   ]

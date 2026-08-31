@@ -32,8 +32,8 @@ spdd-verify/assets/hook-setup.md      # same as spdd-canvas/assets/hook-setup.md
 spdd-verify/evals/evals.json          # evals 15–19, 30–36, 51: missing op, untested safeguard, single-plan archive, partial-plan hold, norm violation, spec dedup on fold-back, diff-to-canvas check, global-norms violation
 spdd-sync/SKILL.md                    # code → living spec sync, behavior-preserving only — /spdd-sync
 spdd-sync/evals/evals.json            # evals 20–23: clean refactor sync, behavior-change rejection, ambiguous case, missing spec
-spdd-migrate/SKILL.md                 # one-time docs/prompts/ → spdd/ migration — /spdd-migrate
-spdd-migrate/evals/evals.json         # evals 24–28: draft migration, implemented preserved, idempotency, hook rewrite, nothing to migrate
+spdd-migrate/SKILL.md                 # one-time docs/prompts/ → spdd/changes|archive + docs/features/ → spdd/specs/ migration — /spdd-migrate
+spdd-migrate/evals/evals.json         # evals 24–28, 62–66: draft stays active, closed canvas archived, idempotency, hook rewrite, nothing to migrate, spec fold, orphan fold, fold idempotency, status-agnostic routing
 evals/workspace/                      # gitignored — local eval results go here
 ```
 
@@ -61,12 +61,13 @@ Tool permissions are declared per skill via `allowed-tools:` in its own `SKILL.m
 | `spdd-implement` | Never auto-triggers on its own. Invoked manually via `/spdd-implement`, or delegated by `spdd-agent`, once a plan exists |
 | `spdd-verify` | Never auto-triggers on its own. Invoked manually via `/spdd-verify`, or delegated by `spdd-agent`, once implementation is done |
 | `spdd-sync` | User refactored code that already has a living spec, outside the SPDD flow, and the spec no longer matches the code's shape — auto-triggers independently, same as today |
-| `spdd-migrate` | Project still has canvases under the old `docs/prompts/` layout and needs a one-time move to `spdd/` — auto-triggers independently, same as today |
+| `spdd-migrate` | Project still has canvases under the old `docs/prompts/` layout or feature docs under `docs/features/` and needs a one-time move to `spdd/` — auto-triggers independently, same as today |
 
 ### SPDD guard hook
 
 Configured in the *target* project's `.claude/settings.local.json`, not in this repo. Runs before every `Edit` or `Write` and warns if any canvas or plan under `spdd/changes/` has unresolved `⚠️ Confirm:` items.
 
 To install it in a new project, invoke `spdd-canvas`, `spdd-implement`, or `spdd-verify` — all three offer to add it automatically. `spdd-design` doesn't check or install it — by the time it runs, `spdd-canvas` has already offered it. `spdd-sync` never touches `spdd/changes/`, so it doesn't install or check this hook either. `spdd-migrate` rewrites an existing hook that still points at the old `docs/prompts/` path, but doesn't install one from scratch.
+- `spdd-migrate` routes each old canvas by whether it's closed (`Status: Implemented`, or a paired `docs/features/<slug>.md` exists) — closed canvases go to `spdd/archive/` with `Status: Verified`; everything else stays `Status`-preserved in `spdd/changes/`, same as active work from any other skill. `docs/features/<slug>.md` — the pre-rework equivalent of `spdd/specs/<domain>.md` — gets folded into the matching domain spec (paired with a closed canvas, or orphaned with no canvas at all), tagged with an HTML comment marker per source file so re-running the skill doesn't duplicate the fold.
 
 When a phase runs as a background subagent under `spdd-agent`, it never installs the hook itself — installing it is a side-effect action, and a background subagent has no `AskUserQuestion` to confirm it with. It leaves a `⚠️ Confirm:` note instead; `spdd-agent`'s foreground checkpoint gate is what actually asks the user and installs it.

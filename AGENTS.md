@@ -16,7 +16,7 @@ Structured Prompt-Driven Development (SPDD) skills. Each skill is a directory wi
 | `spdd-implement` | Never auto-triggers on its own. Invoked manually via `/spdd-implement`, or delegated by `spdd-agent`, once a plan exists |
 | `spdd-verify` | Never auto-triggers on its own. Invoked manually via `/spdd-verify`, or delegated by `spdd-agent`, once implementation is done |
 | `spdd-sync` | User refactored code that already has a living spec, outside the SPDD flow, and the spec no longer matches the code's shape — auto-triggers independently |
-| `spdd-migrate` | Project still has canvases under the old `docs/prompts/` layout and needs a one-time move to `spdd/` — auto-triggers independently |
+| `spdd-migrate` | Project still has canvases under the old `docs/prompts/` layout or feature docs under `docs/features/` and needs a one-time move to `spdd/` — auto-triggers independently |
 
 ## Structure
 ```
@@ -38,8 +38,8 @@ spdd-verify/assets/hook-setup.md      # same as spdd-canvas/assets/hook-setup.md
 spdd-verify/evals/evals.json          # evals 15–19, 30–36, 51: missing op, untested safeguard, single-plan archive, partial-plan hold, norm violation, spec dedup on fold-back, diff-to-canvas check, global-norms violation
 spdd-sync/SKILL.md                    # Code → living spec sync, behavior-preserving only — /spdd-sync
 spdd-sync/evals/evals.json            # evals 20–23: clean refactor sync, behavior-change rejection, ambiguous case, missing spec
-spdd-migrate/SKILL.md                 # One-time docs/prompts/ → spdd/ migration — /spdd-migrate
-spdd-migrate/evals/evals.json         # evals 24–28: draft migration, implemented preserved, idempotency, hook rewrite, nothing to migrate
+spdd-migrate/SKILL.md                 # One-time docs/prompts/ → spdd/changes|archive + docs/features/ → spdd/specs/ migration — /spdd-migrate
+spdd-migrate/evals/evals.json         # evals 24–28, 62–66: draft stays active, closed canvas archived, idempotency, hook rewrite, nothing to migrate, spec fold, orphan fold, fold idempotency, status-agnostic routing
 evals/workspace/                      # gitignored — local eval results go here
 ```
 
@@ -55,6 +55,6 @@ evals/workspace/                      # gitignored — local eval results go her
 - `evals/workspace/` is gitignored; eval results stay local
 - `spdd/changes/` canvases/plans with `Status: Draft`, `Confirmed`, or `Implemented` (but not yet `Verified`) are works in progress
 - SPDD skills always generate document content (canvas, plans, specs, and inline notes) in English, regardless of the language of the feature description or conversation — this reduces reasoning token consumption for downstream skill steps that read these documents as context. Conversational responses to the user follow the conversation's language setting (e.g. your `CLAUDE.md` "Responses in Spanish").
-- No backward-compat shim for the old `docs/prompts/` layout — projects on the previous version should run `/spdd-migrate` once, which moves canvases to `spdd/changes/`, reformats them to `WHEN/THEN`, and updates the guard hook to the new path automatically
+- No backward-compat shim for the old `docs/prompts/` layout — projects on the previous version should run `/spdd-migrate` once, which reformats old canvases to `WHEN/THEN` and routes each one by whether it's closed (`Status: Implemented`, or a paired `docs/features/<slug>.md` exists): closed goes to `spdd/archive/` as `Status: Verified`, everything else stays `Status`-preserved in `spdd/changes/`. It also folds `docs/features/<slug>.md` — the pre-rework equivalent of `spdd/specs/<domain>.md` — into the matching domain spec, and updates the guard hook to the new path automatically
 - The hook/TTL setup block lives in each skill's own `assets/hook-setup.md` (`spdd-canvas/assets/hook-setup.md`, `spdd-implement/assets/hook-setup.md`, `spdd-verify/assets/hook-setup.md`) — duplicated on purpose since skills install and run independently via symlink, so nothing can reference a shared file outside its own folder. Each `SKILL.md` only inlines the grep check and reads its own `assets/hook-setup.md` when the check shows something missing, instead of always paying the block's token cost. `scripts/check-hook-sync.sh` diffs the three asset copies and fails if any has drifted — run it after editing any of them; it's repo tooling only, never read by a `SKILL.md` at execution time
 - This repo's own `~/.config/spdd/config.json` intentionally runs `canvas`/`design`/`verify` at `sonnet` — one tier below `spdd-agent`'s documented `opus` default — for cost reasons while dogfooding these skills on themselves; `implement` runs at `sonnet`, already matching the framework's own recommended tier. This is a deliberate, revisable cost tradeoff, not unmaintained drift from the framework's own advice

@@ -25,7 +25,7 @@ SPDD fixes this by making the agent write down its understanding of a feature �
 | `spdd-implement` | `/spdd-implement` | Implements a feature from a plan produced by `spdd-design` |
 | `spdd-verify` | `/spdd-verify` | Checks the implemented diff against the canvas's Operations/Norms, tests edge cases, folds it into the living spec, and archives it |
 | `spdd-sync` | `/spdd-sync` | Syncs a behavior-preserving code refactor back into the living spec |
-| `spdd-migrate` | `/spdd-migrate` | One-time migration from the old flat `docs/prompts/` layout to `spdd/` |
+| `spdd-migrate` | `/spdd-migrate` | One-time migration from the old flat `docs/prompts/` layout and `docs/features/` docs to `spdd/` |
 
 ## Installation
 
@@ -121,7 +121,7 @@ Compares the current code against `spdd/specs/<domain>.md` and updates Entities/
 
 > **Subagent prompt cache TTL:** `spdd-canvas`, `spdd-implement`, and `spdd-verify` each offer to add `"subagentPromptCacheTtl": "1h"` to `.claude/settings.local.json`, the same step and confirmation gesture already used to install the guard hook. Claude Code caches a background subagent's own conversation separately from the main session, at a 5-minute TTL by default regardless of your plan. `spdd-implement`'s edit → test → fix loop and `spdd-verify`'s write-test → run → diff-to-canvas loop can both run several turns inside one subagent call — a slow test run between turns is enough to miss that 5-minute window and force a full, uncached re-read of the conversation so far. The 1-hour TTL avoids that at the cost of a slightly pricier cache write, which pays off whenever a phase's own loop takes more than a few minutes.
 
-> **Migrating from `docs/prompts/`:** if you installed an earlier version of these skills, run `/spdd-migrate` once in that project. It moves canvases from `docs/prompts/SPDD-*.md` into `spdd/changes/SPDD-.../canvas.md`, rewrites Acceptance Criteria/Safeguards into `WHEN/THEN`, keeps each canvas's original `Status` (an old `Implemented` canvas stays `Implemented` — run `/spdd-verify` on it whenever you want it folded into `spdd/specs/`), and updates the guard hook to the new path. It's non-destructive and idempotent: the original files are left in place unless you confirm deletion, and running it again skips whatever was already migrated.
+> **Migrating from `docs/prompts/`:** if you installed an earlier version of these skills, run `/spdd-migrate` once in that project. It rewrites each old canvas's Acceptance Criteria/Safeguards into `WHEN/THEN`, then routes it by whether it's closed: `Status: Implemented`, or a paired `docs/features/<slug>.md` exists, moves it straight to `spdd/archive/SPDD-.../canvas.md` with `Status: Verified`; otherwise it stays `Status`-preserved in `spdd/changes/SPDD-.../canvas.md` as active work, same as anything from `spdd-canvas`. It also folds `docs/features/<slug>.md` — the old per-feature doc this project used before `spdd/specs/<domain>.md` existed — into the matching domain spec, inferring the domain the same way `spdd-canvas` does. It's non-destructive and idempotent: the original files are left in place unless you confirm deletion, and running it again skips whatever was already migrated or folded.
 
 ## Other agents
 
