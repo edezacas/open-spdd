@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 11 (SPDD hook and subagent cache TTL s
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.5"
+  version: "2.6"
 ---
 
 ## Today's date and time
@@ -52,7 +52,8 @@ Before reading the spec, check whether it has fallen behind code changes made ou
    ```
    If either command fails (not a git repo, no matching folder), skip this check silently.
 4. If that second command returns any commits, stop and tell the user:
-   `El dominio <domain> tiene cambios de código no reflejados en la spec (último commit: <fecha/hash>, última sync de spec: <fecha>). ¿Ejecuto spdd-sync antes de continuar?`
+   `Domain <domain> has code changes not reflected in the spec (last commit: <date/hash>, last spec sync: <date>). Run spdd-sync before continuing?`
+   This is a conversational message, not persisted document content — phrase it in whatever language the current conversation is in, same as every other conversational reply from this skill.
    Ask via `AskUserQuestion` with options: "Run spdd-sync first" (invoke `spdd-sync` for this domain, then continue) or "Continue anyway" (proceed at their own risk — note the staleness in the final report).
 5. Do not generate the canvas until the human has decided.
 

@@ -101,10 +101,10 @@
     {
       "id": 40,
       "prompt": "en src/utils/format.ts, falta exportar la función parseDate que está definida; expórtala y anota un test",
-      "expected_output": "The skill detects this as a direct route (1 file, mechanical change, no ambiguity). It displays 'Ruta directa: <reason> → implemento sin canvas.' before executing, makes the change directly (export statement + test), runs the test suite, and — if tests pass — annotates a summary in spdd/specs/utils.md. No canvas, design, or verify phase is launched.",
+      "expected_output": "The skill detects this as a direct route (1 file, mechanical change, no ambiguity). It displays 'Direct route: <reason> → implementing without a canvas.' before executing, makes the change directly (export statement + test), runs the test suite, and — if tests pass — annotates a summary in spdd/specs/utils.md. No canvas, design, or verify phase is launched.",
       "setup": "Ensure the file src/utils/format.ts exists with an unexported parseDate function, and a test suite is available.",
       "assertions": [
-        "The response contains the transparency line 'Ruta directa:' before any changes are made",
+        "The response contains the transparency line 'Direct route:' before any changes are made",
         "No canvas.md, plan.md, or design artifacts are created under spdd/changes/",
         "The function is exported and test(s) pass",
         "spdd/specs/utils.md (or general.md if domain inference fails) is updated with a summary",
@@ -117,7 +117,7 @@
       "expected_output": "The skill detects this as a complete route (affects 3+ files/subsystems, architectural decision, ambiguity on design choices). It skips direct execution and proceeds with the full canvas → design → implement → verify flow, bootstrapping models normally.",
       "setup": "Ensure ~/.config/spdd/config.json already has valid model values (to skip bootstrap noise).",
       "assertions": [
-        "No transparency line 'Ruta directa:' appears in the response",
+        "No transparency line 'Direct route:' appears in the response",
         "canvas.md is created under spdd/changes/",
         "The canvas includes a REASONS section exploring design choices (distributed cache vs. local, Redis vs. alternatives, etc.)",
         "The complete flow (canvas → design → implement → verify) is initiated"
@@ -129,7 +129,7 @@
       "expected_output": "The skill recognizes a boundary case: exactly 2 files, but they touch a shared architectural entity (Token struct used by many features). This triggers architectural ambiguity, so the skill chooses the complete route despite the file count being ≤ 2.",
       "setup": "Ensure both auth files exist and that the Token struct is referenced by multiple features (reflect this in comments or structure if needed).",
       "assertions": [
-        "No transparency line 'Ruta directa:' appears; the skill treats this as complete route despite ≤ 2 files",
+        "No transparency line 'Direct route:' appears; the skill treats this as complete route despite ≤ 2 files",
         "canvas.md is created and includes discussion of shared-entity implications",
         "The complete canvas → design → implement → verify flow is initiated"
       ]
@@ -140,7 +140,7 @@
       "expected_output": "The change touches only 1 file, but the discount rule is not documented anywhere — a business-rule ambiguity. The skill does not take the direct route on file count alone; the ambiguity forces the complete route.",
       "setup": "Ensure no existing documentation or spec defines discount rules/tiers.",
       "assertions": [
-        "No transparency line 'Ruta directa:' appears in the response",
+        "No transparency line 'Direct route:' appears in the response",
         "canvas.md is created under spdd/changes/ despite the change touching only 1 file",
         "The complete canvas → design → implement → verify flow is initiated because of business ambiguity, not file count"
       ]
@@ -151,7 +151,7 @@
       "expected_output": "The skill takes the direct route (1 file, mechanical fix), implements it, and runs the test suite. The suite fails. The skill reports the concrete failure to the user, does not annotate spdd/specs/, and does not revert the code change automatically — the decision to revert or fix is left to the human.",
       "setup": "Arrange for the test suite to fail after the fix is applied (e.g. an existing test asserts behavior incompatible with the fix, simulating a regression).",
       "assertions": [
-        "The transparency line 'Ruta directa:' appears before execution",
+        "The transparency line 'Direct route:' appears before execution",
         "No spdd/specs/ file is created or updated after the failing test run",
         "The code change made during the direct route is still present (not reverted) after the failure is reported",
         "The response reports the specific failing test, not a generic failure message"
@@ -163,7 +163,7 @@
       "expected_output": "The skill takes the direct route (1 file, mechanical fix). Since scripts/deploy.sh does not follow a src/<domain>/ folder convention, no clear domain can be inferred, so the summary is annotated in spdd/specs/general.md instead of a domain-specific file.",
       "setup": "Ensure scripts/deploy.sh exists outside any src/<domain>/ convention.",
       "assertions": [
-        "The transparency line 'Ruta directa:' appears",
+        "The transparency line 'Direct route:' appears",
         "spdd/specs/general.md is updated (not a domain-specific spec file) because no folder convention indicates a domain",
         "No canvas/design/implement/verify subagent is launched"
       ]
@@ -176,16 +176,16 @@
       "assertions": [
         "The routing decision is resolved (implicitly, by the flow proceeding to canvas/bootstrap) before any AskUserQuestion for model bootstrap appears",
         "~/.config/spdd/config.json is created via the first-run bootstrap flow, since the route chosen is complete",
-        "No transparency line 'Ruta directa:' appears"
+        "No transparency line 'Direct route:' appears"
       ]
     },
     {
       "id": 47,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "Before launching the canvas phase, the skill silently resolves Isolated vs. Inline mode (Step 2) and now surfaces that choice as a visible '[decisión automática]' line, per the general decision-transparency rule — distinct from the '⚠️ Confirm:' lines reserved for blocking, side-effecting, or business-ambiguous decisions.",
+      "expected_output": "Before launching the canvas phase, the skill silently resolves Isolated vs. Inline mode (Step 2) and now surfaces that choice as a visible '[automatic decision]' line, per the general decision-transparency rule — distinct from the '⚠️ Confirm:' lines reserved for blocking, side-effecting, or business-ambiguous decisions.",
       "setup": "Ensure ~/.config/spdd/config.json already has valid values for all six phases (skip bootstrap noise), and the host has a subagent-launching mechanism available (isolated mode applies).",
       "assertions": [
-        "The response contains a line starting with '[decisión automática]' before the canvas phase is launched",
+        "The response contains a line starting with '[automatic decision]' before the canvas phase is launched",
         "That line reports the Isolated-mode choice and a brief reason (host exposes a subagent mechanism)",
         "No '⚠️ Confirm:' line is used for this mode decision — it is not a blocking question"
       ]

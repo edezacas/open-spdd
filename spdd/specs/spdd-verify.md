@@ -8,29 +8,29 @@
 ## Requirements
 
 **User story:**
-Como equipo que usa `spdd-verify`, quiero que la verificación compare el diff real de código
-contra las Operations y Norms del canvas/plan de origen antes de foldear a la spec, para que
-un test en verde no pueda ocultar una divergencia silenciosa entre lo acordado y lo implementado.
+As a team using `spdd-verify`, I want verification to compare the real code diff
+against the Operations and Norms of the source canvas/plan before folding into the spec, so that
+a passing test can't hide a silent divergence between what was agreed and what was implemented.
 
-**Scenario: diff coherente con el canvas — continúa sin fricción**
-- WHEN el diff real de los archivos modificados en la implementación cubre exactamente las Operations declaradas en el canvas/plan, sin tocar archivos/módulos no mencionados
-- THEN `spdd-verify` reporta el chequeo como pasado en un renglón corto y continúa al fold-to-spec (Step 8) sin pedir confirmación
+**Scenario: diff matches the canvas — proceeds without friction**
+- WHEN the real diff of the files modified in the implementation covers exactly the Operations declared in the canvas/plan, without touching files/modules not mentioned
+- THEN `spdd-verify` reports the check as passed in a short line and continues to fold-to-spec (Step 8) without asking for confirmation
 
-**Scenario: el diff toca un archivo no declarado en el canvas — bloquea**
-- WHEN el diff real incluye cambios en un archivo o módulo que no aparece en Structure, Shared touchpoints ni Operations del canvas/plan en verificación
-- THEN `spdd-verify` detiene el proceso antes del fold, muestra la discrepancia concreta (archivo tocado vs. lo declarado en el canvas) y no marca el scope como `Verified` ni folda nada a `spdd/specs/<domain>.md`
+**Scenario: the diff touches a file not declared in the canvas — blocks**
+- WHEN the real diff includes changes to a file or module that doesn't appear in Structure, Shared touchpoints, or Operations of the canvas/plan being verified
+- THEN `spdd-verify` stops the process before the fold, shows the concrete discrepancy (file touched vs. what the canvas declares) and does not mark the scope as `Verified` or fold anything into `spdd/specs/<domain>.md`
 
-**Scenario: una Operation del canvas no tiene código correspondiente en el diff — bloquea**
-- WHEN una Operation listada en el canvas/plan no tiene ningún cambio correspondiente en el diff real (código "conectado a nada" o directamente ausente)
-- THEN `spdd-verify` detiene el proceso antes del fold, nombra la Operation sin implementación real y no marca el scope como `Verified`
+**Scenario: a canvas Operation has no corresponding code in the diff — blocks**
+- WHEN an Operation listed in the canvas/plan has no corresponding change in the real diff (code "connected to nothing" or outright missing)
+- THEN `spdd-verify` stops the process before the fold, names the Operation with no real implementation, and does not mark the scope as `Verified`
 
-**Scenario: discrepancia confirmada como intencional por el humano — continúa el fold**
-- WHEN se detecta una discrepancia (archivo no declarado u Operation sin código) y el humano confirma explícitamente, en una sesión con turno en vivo, que es intencional
-- THEN `spdd-verify` usa `AskUserQuestion` para pedir esa confirmación, y si se confirma, continúa al fold-to-spec anotando la discrepancia aceptada como nota en el fold (p. ej. una Operation fuera de alcance para esta iteración, documentada como tal)
+**Scenario: discrepancy confirmed as intentional by the human — the fold proceeds**
+- WHEN a discrepancy is detected (undeclared file or Operation with no code) and the human explicitly confirms, in a session with a live turn, that it is intentional
+- THEN `spdd-verify` uses `AskUserQuestion` to ask for that confirmation, and if confirmed, continues to fold-to-spec, annotating the accepted discrepancy as a note in the fold (e.g. an Operation out of scope for this iteration, documented as such)
 
-**Scenario: discrepancia detectada corriendo como subagente en background bajo spdd-agent**
-- WHEN `spdd-verify` corre como subagente en background delegado por `spdd-agent` (sin turno de usuario en vivo, sin `AskUserQuestion` disponible de forma útil) y el Diff-to-canvas check encuentra una discrepancia
-- THEN `spdd-verify` no se queda bloqueado esperando una respuesta que no puede llegar — trata la discrepancia igual que un fallo del Step 6 (Structural check/tests): detiene el proceso, deja el plan/canvas como está, no folda ni archiva nada, reporta el gap concreto, y añade una línea `⚠️ Confirm:` en el plan/canvas para que el checkpoint en foreground de `spdd-agent` la resuelva después
+**Scenario: discrepancy detected while running as a background subagent under spdd-agent**
+- WHEN `spdd-verify` runs as a background subagent delegated by `spdd-agent` (no live user turn, no `AskUserQuestion` usefully available) and the Diff-to-canvas check finds a discrepancy
+- THEN `spdd-verify` does not stay blocked waiting for a reply that can't arrive — it treats the discrepancy the same as a Step 6 (Structural check/tests) failure: it stops the process, leaves the plan/canvas as is, does not fold or archive anything, reports the concrete gap, and adds a `⚠️ Confirm:` line to the plan/canvas for `spdd-agent`'s foreground checkpoint to resolve later
 
 **Scenario: `spdd-verify` writes new prose to the spec or discrepancy notes**
 - WHEN `spdd-verify` folds a change into `spdd/specs/<domain>.md` (Step 8, "Fold back and
@@ -38,10 +38,10 @@ un test en verde no pueda ocultar una divergencia silenciosa entre lo acordado y
 - THEN that new prose (not just content copied from the source canvas/plan) is written in
   English, consistent with the rest of the document it's added to
 
-**Out of scope (deliberado):**
-- Mejora 4 (`spdd/norms.md` como fuente adicional de verificación) — el Diff-to-canvas check valida solo contra el canvas/plan de origen, no contra normas globales de proyecto.
-- No se introduce análisis estático de código (linters, AST, etc.) — la comparación diff-vs-canvas se hace con el propio razonamiento del agente al leer el diff, igual que ya hace `spdd-canvas` para generar el canvas.
-- El Step 3 (Structural check) preexistente no cambia — el nuevo Step 7 lo complementa usando diff real de git en vez de solo lectura de rutas declaradas.
+**Out of scope (deliberate):**
+- Improvement 4 (`spdd/norms.md` as an additional verification source) — the Diff-to-canvas check validates only against the source canvas/plan, not against project-wide norms.
+- No static code analysis is introduced (linters, AST, etc.) — the diff-vs-canvas comparison relies on the agent's own reasoning when reading the diff, the same way `spdd-canvas` already does to generate the canvas.
+- The pre-existing Step 3 (Structural check) doesn't change — the new Step 7 complements it using the real git diff instead of just reading declared paths.
 
 ---
 
@@ -49,7 +49,7 @@ un test en verde no pueda ocultar una divergencia silenciosa entre lo acordado y
 
 | Name | Path | Notes |
 |------|------|-------|
-| Sección "Diff-to-canvas check" | `spdd-verify/SKILL.md` | Step 7, entre Step 6 (Mark status) y Step 8 (Fold back and archive) |
+| "Diff-to-canvas check" section | `spdd-verify/SKILL.md` | Step 7, between Step 6 (Mark status) and Step 8 (Fold back and archive) |
 | Language note | `spdd-verify/SKILL.md` | Placed right after the Diff-to-canvas check gates (Step 7) and before "Fold back and archive" (Step 8) — covers new prose written in both steps |
 
 ---
@@ -58,20 +58,20 @@ un test en verde no pueda ocultar una divergencia silenciosa entre lo acordado y
 
 | Type | Identifier | Description |
 |------|-----------|-------------|
-| Step | "Diff-to-canvas check" (Step 7, entre Step 6 "Mark status" y Step 8 "Fold back and archive") | Obtiene el diff real de los archivos modificados en esta implementación (`git diff` para cambios sin commitear; `git log -p`/`git log --stat` sobre las rutas declaradas en Structure/Shared touchpoints del plan/canvas si ya están commiteados) y lo compara punto por punto contra las Operations y Norms del canvas/plan en verificación |
-| Check | Cobertura de Operations | Cada Operation del canvas/plan debe tener código correspondiente en el diff; si falta alguna, es una discrepancia bloqueante |
-| Check | Alcance del diff | Ningún archivo/módulo tocado en el diff puede quedar fuera de Structure, Shared touchpoints u Operations del canvas/plan; si lo hace, es una discrepancia bloqueante — excepto los archivos de test que el propio Step 4 de `spdd-verify` creó durante esta misma verificación, que quedan exentos del chequeo por ser un subproducto esperado de la verificación, no del diff de implementación original |
-| Gate | Discrepancia en sesión con turno en vivo (foreground) | Usa `AskUserQuestion` para preguntar al humano si la discrepancia es intencional; si confirma, continúa al fold anotando la discrepancia aceptada; si no confirma o no responde con claridad, detiene el proceso sin foldear |
-| Gate | Discrepancia en subagente background (delegado por `spdd-agent`) | No usa `AskUserQuestion` (no hay turno de usuario en vivo) — trata la discrepancia igual que un fallo del Step 6: detiene el proceso, no folda, reporta el gap, deja una línea `⚠️ Confirm:` en el plan/canvas |
-| Report | Discrepancia concreta | Formato: "Canvas declara: `<Operation o ruta>` → Código real: `<lo que el diff muestra o su ausencia>`" — nunca un genérico "no coincide" |
+| Step | "Diff-to-canvas check" (Step 7, between Step 6 "Mark status" and Step 8 "Fold back and archive") | Gets the real diff of the files modified in this implementation (`git diff` for uncommitted changes; `git log -p`/`git log --stat` over the paths declared in Structure/Shared touchpoints of the plan/canvas if already committed) and compares it point by point against the Operations and Norms of the canvas/plan being verified |
+| Check | Operations coverage | Every Operation in the canvas/plan must have corresponding code in the diff; if any is missing, it's a blocking discrepancy |
+| Check | Diff scope | No file/module touched in the diff may fall outside Structure, Shared touchpoints, or Operations of the canvas/plan; if it does, it's a blocking discrepancy — except test files that `spdd-verify`'s own Step 4 created during this same verification, which are exempt from the check since they're an expected byproduct of verification, not of the original implementation diff |
+| Gate | Discrepancy in a session with a live turn (foreground) | Uses `AskUserQuestion` to ask the human whether the discrepancy is intentional; if confirmed, continues to the fold, annotating the accepted discrepancy; if not confirmed or answered without clarity, stops the process without folding |
+| Gate | Discrepancy in a background subagent (delegated by `spdd-agent`) | Doesn't use `AskUserQuestion` (no live user turn) — treats the discrepancy the same as a Step 6 failure: stops the process, doesn't fold, reports the gap, leaves a `⚠️ Confirm:` line in the plan/canvas |
+| Report | Concrete discrepancy | Format: "Canvas declares: `<Operation or path>` → Actual code: `<what the diff shows, or its absence>`" — never a generic "doesn't match" |
 | Note | Language note in `spdd-verify/SKILL.md` (near Steps 7–8) | States that any new prose written during the Diff-to-canvas check (discrepancy notes, `⚠️ Confirm:` lines) or during Fold back and archive (new scenarios/Norms added to the spec, fold annotations) must be in English, regardless of the user's conversation language — the canvas/plan/spec documents are always in English; conversational replies to the user follow the conversation's language settings |
 
 ---
 
 ## Norms
 
-- Simplicity First: el Diff-to-canvas check no introduce análisis estático ni herramientas externas — solo lectura de diff y razonamiento del agente.
-- El Diff-to-canvas check (Step 7) complementa el Step 3 (Structural check) sin duplicarlo: Step 3 sigue comprobando declaración de rutas; Step 7 usa el diff real de git como evidencia objetiva.
-- Incrementar `metadata.version` de `spdd-verify/SKILL.md` al guardar cualquier edición de sus instrucciones.
-- Nunca foldear a `spdd/specs/<domain>.md` mientras exista una discrepancia sin resolver — ni en foreground sin confirmación explícita, ni en background bajo `spdd-agent`.
-- New prose `spdd-verify` writes during the Diff-to-canvas check (Step 7) or the fold-to-spec step (Step 8) must be in English, regardless of the conversation's language — this applies even when, as in this repo today, the surrounding spec sections were written in Spanish before this rule existed; existing content is not retranslated as a side effect.
+- Simplicity First: the Diff-to-canvas check introduces no static analysis or external tools — only diff reading and the agent's own reasoning.
+- The Diff-to-canvas check (Step 7) complements Step 3 (Structural check) without duplicating it: Step 3 still checks declared-path coverage; Step 7 uses the real git diff as objective evidence.
+- Increment `metadata.version` in `spdd-verify/SKILL.md` on any edit to its instructions.
+- Never fold into `spdd/specs/<domain>.md` while an unresolved discrepancy exists — neither in foreground without explicit confirmation, nor in background under `spdd-agent`.
+- New prose `spdd-verify` writes during the Diff-to-canvas check (Step 7) or the fold-to-spec step (Step 8) must be in English, regardless of the conversation's language.
