@@ -25,13 +25,16 @@ spdd-agent/evals/evals.json           # evals 31–38: config request, bootstrap
 spdd-canvas/SKILL.md                  # REASONS canvas generator — /spdd-canvas
 spdd-canvas/assets/template-reasons.md
 spdd-canvas/assets/template-norms.md  # starting template for a target project's spdd/norms.md
+spdd-canvas/assets/hook-setup.md      # guard-hook + cache-TTL JSON, read only when the check finds it missing
 spdd-canvas/evals/evals.json          # evals 1–3, 9–10, 48–50: guard, generation quality, hook, applicability guard, spec read, freshness check, global norms
 spdd-design/SKILL.md                  # Canvas → independent implementation plans — /spdd-design
 spdd-design/assets/template-plan.md
 spdd-design/evals/evals.json          # evals 11–14, 29: single plan, split plans, dependencies, shared touchpoints, existing-plan guard
 spdd-implement/SKILL.md               # Canvas/plan-driven implementer — /spdd-implement
+spdd-implement/assets/hook-setup.md   # same as spdd-canvas/assets/hook-setup.md, duplicated for standalone install
 spdd-implement/evals/evals.json       # evals 4–8: unresolved items, missing-plan guard, divergence, unmet dependency, final state
 spdd-verify/SKILL.md                  # Verifies, tests, folds into spec, archives — /spdd-verify
+spdd-verify/assets/hook-setup.md      # same as spdd-canvas/assets/hook-setup.md, duplicated for standalone install
 spdd-verify/evals/evals.json          # evals 15–19, 30–36, 51: missing op, untested safeguard, single-plan archive, partial-plan hold, norm violation, spec dedup on fold-back, diff-to-canvas check, global-norms violation
 spdd-sync/SKILL.md                    # Code → living spec sync, behavior-preserving only — /spdd-sync
 spdd-sync/evals/evals.json            # evals 20–23: clean refactor sync, behavior-change rejection, ambiguous case, missing spec
@@ -53,5 +56,5 @@ evals/workspace/                      # gitignored — local eval results go her
 - `spdd/changes/` canvases/plans with `Status: Draft`, `Confirmed`, or `Implemented` (but not yet `Verified`) are works in progress
 - SPDD skills always generate document content (canvas, plans, specs, and inline notes) in English, regardless of the language of the feature description or conversation — this reduces reasoning token consumption for downstream skill steps that read these documents as context. Conversational responses to the user follow the conversation's language setting (e.g. your `CLAUDE.md` "Responses in Spanish").
 - No backward-compat shim for the old `docs/prompts/` layout — projects on the previous version should run `/spdd-migrate` once, which moves canvases to `spdd/changes/`, reformats them to `WHEN/THEN`, and updates the guard hook to the new path automatically
-- `scripts/check-hook-sync.sh` diffs the hook/TTL block that's duplicated verbatim across `spdd-canvas/SKILL.md`, `spdd-implement/SKILL.md`, and `spdd-verify/SKILL.md`, and fails if any copy has drifted — run it after editing any of those three blocks; it's repo tooling only, never read by a `SKILL.md` at execution time
+- The hook/TTL setup block lives in each skill's own `assets/hook-setup.md` (`spdd-canvas/assets/hook-setup.md`, `spdd-implement/assets/hook-setup.md`, `spdd-verify/assets/hook-setup.md`) — duplicated on purpose since skills install and run independently via symlink, so nothing can reference a shared file outside its own folder. Each `SKILL.md` only inlines the grep check and reads its own `assets/hook-setup.md` when the check shows something missing, instead of always paying the block's token cost. `scripts/check-hook-sync.sh` diffs the three asset copies and fails if any has drifted — run it after editing any of them; it's repo tooling only, never read by a `SKILL.md` at execution time
 - This repo's own `~/.config/spdd/config.json` intentionally runs `canvas`/`design`/`verify` at `sonnet` — one tier below `spdd-agent`'s documented `opus` default — for cost reasons while dogfooding these skills on themselves; `implement` runs at `sonnet`, already matching the framework's own recommended tier. This is a deliberate, revisable cost tradeoff, not unmaintained drift from the framework's own advice

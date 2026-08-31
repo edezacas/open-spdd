@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 11 (SPDD hook and subagent cache TTL s
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.7"
+  version: "2.8"
 ---
 
 ## Today's date and time
@@ -92,21 +92,7 @@ grep -q 'SPDD' .claude/settings.local.json 2>/dev/null && echo "hook: exists" ||
 grep -q '"subagentPromptCacheTtl"' .claude/settings.local.json 2>/dev/null && echo "ttl: exists" || echo "ttl: missing"
 ```
 
-For whichever is **missing**, ask the user whether to add it (one combined `AskUserQuestion` if both are missing). If confirmed, merge the applicable piece(s) into `.claude/settings.local.json` and write it back:
-
-- **Guard hook** — into `hooks.PreToolUse` (create the key if absent):
-  ```json
-  {
-    "matcher": "Edit|Write",
-    "hooks": [
-      {
-        "type": "command",
-        "command": "unresolved=$(grep -rl '⚠️ Confirm:' spdd/changes/*/canvas.md spdd/changes/*/plans/*.md 2>/dev/null); if [ -n \"$unresolved\" ]; then echo \"SPDD WARNING: unresolved canvas/plan items in: $unresolved — review before editing code.\"; fi"
-      }
-    ]
-  }
-  ```
-- **Subagent cache TTL** — top-level (not under `hooks`): `"subagentPromptCacheTtl": "1h"`. Set this so that `spdd-implement` and `spdd-verify` — which can run several turns inside one subagent call — keep their prompt cache alive; without the TTL setting, Claude Code caps it at 5 minutes regardless of plan.
+For whichever is **missing**, ask the user whether to add it (one combined `AskUserQuestion` if both are missing). If confirmed, read [hook-setup.md](assets/hook-setup.md) for the exact JSON and merge it into `.claude/settings.local.json`.
 
 ### Step 12 — Report back
 

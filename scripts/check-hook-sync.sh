@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 # Diffs the SPDD guard-hook JSON block and the subagentPromptCacheTtl line
-# across spdd-canvas/SKILL.md, spdd-implement/SKILL.md, and spdd-verify/SKILL.md.
+# across spdd-canvas/assets/hook-setup.md, spdd-implement/assets/hook-setup.md,
+# and spdd-verify/assets/hook-setup.md.
 # Fails with a clear message if any of the three copies has drifted.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 FILES=(
-  "$REPO_ROOT/spdd-canvas/SKILL.md"
-  "$REPO_ROOT/spdd-implement/SKILL.md"
-  "$REPO_ROOT/spdd-verify/SKILL.md"
+  "$REPO_ROOT/spdd-canvas/assets/hook-setup.md"
+  "$REPO_ROOT/spdd-implement/assets/hook-setup.md"
+  "$REPO_ROOT/spdd-verify/assets/hook-setup.md"
 )
 
 extract_json_block() {
