@@ -5,7 +5,7 @@ license: Apache-2.0
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.1"
+  version: "1.2"
 ---
 
 ## Instructions
@@ -34,7 +34,7 @@ Update only Entities, Structure, Operations, and Norms in `spdd/specs/<domain>.m
 
 If it's genuinely unclear whether something is a pure refactor or a behavior change, don't guess: mark it with `⚠️ Confirm:` directly in the spec and ask the user.
 
-> **Language note:** Any new text written when updating the spec in Step 5 (modified Entities descriptions, Structure notes, Operations changes, or Norms updates) must be in English, consistent with the rest of the spec document. This applies even if the user's conversation is in another language. The spec documents are the authoritative source in English; conversational responses to the user follow the conversation's language settings (e.g., the user's CLAUDE.md global instructions).
+> **Language note:** Write all new spec text added in Step 5 (Entities, Structure, Operations, Norms updates) in English, regardless of the conversation's language.
 
 ### Step 6 — Report
 

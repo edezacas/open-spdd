@@ -6,14 +6,14 @@ compatibility: Works with any agent. Step 5 (SPDD hook and subagent cache TTL se
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.2"
+  version: "2.3"
 ---
 
 ## Instructions
 
 ### Step 0 — Output language
 
-Use English for all document content generated or modified during implementation (canvas or plan notes, discrepancy annotations, etc.), regardless of the user's conversation language. This reduces reasoning tokens when other skills read these documents as context later. Code itself already follows the English-only convention in the user's global `CLAUDE.md`.
+Write all document content generated or modified during implementation (canvas or plan notes, discrepancy annotations, etc.) in English, regardless of the user's conversation language.
 
 ### Step 1 — Locate the change and plan
 
@@ -66,7 +66,7 @@ For whichever is **missing**, ask the user whether to add it (one combined `AskU
     ]
   }
   ```
-- **Subagent cache TTL** — top-level (not under `hooks`): `"subagentPromptCacheTtl": "1h"`. This phase's own edit/test/fix loop can run inside one subagent call for several turns; without this, Claude Code caps that subagent's own prompt cache at a 5-minute TTL regardless of plan, so a slow test run between turns forces a full, uncached re-read of the growing conversation.
+- **Subagent cache TTL** — top-level (not under `hooks`): `"subagentPromptCacheTtl": "1h"`. This phase can run several turns inside one subagent call; without the TTL setting, Claude Code caps its prompt cache at 5 minutes regardless of plan.
 
 ### Step 6 — Implement
 

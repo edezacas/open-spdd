@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 11 (SPDD hook and subagent cache TTL s
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.6"
+  version: "2.7"
 ---
 
 ## Today's date and time
@@ -106,7 +106,7 @@ For whichever is **missing**, ask the user whether to add it (one combined `AskU
     ]
   }
   ```
-- **Subagent cache TTL** — top-level (not under `hooks`): `"subagentPromptCacheTtl": "1h"`. `spdd-implement` and `spdd-verify` run internal edit/test/verify loops inside one subagent call; without this, Claude Code caps that subagent's own prompt cache at a 5-minute TTL regardless of plan, so a slow test run between turns forces a full, uncached re-read of that phase's growing conversation.
+- **Subagent cache TTL** — top-level (not under `hooks`): `"subagentPromptCacheTtl": "1h"`. Set this so that `spdd-implement` and `spdd-verify` — which can run several turns inside one subagent call — keep their prompt cache alive; without the TTL setting, Claude Code caps it at 5 minutes regardless of plan.
 
 ### Step 12 — Report back
 

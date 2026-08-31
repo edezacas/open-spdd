@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 9 (SPDD hook and subagent cache TTL se
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.5"
+  version: "1.6"
 ---
 
 ## Instructions
@@ -70,7 +70,7 @@ Before folding any result back to `spdd/specs/<domain>.md`, verify that the actu
 
 If everything passes (diff is coherent or user confirms discrepancies), continue to Step 8.
 
-> **Language note:** Any new prose written during Diff-to-canvas check (discrepancy notes, `⚠️ Confirm:` lines added directly to canvas/plan) or during Fold back and archive (new scenarios or Norms added to spec, fold annotations) must be written in English, regardless of the user's conversation language. The canvas/plan/spec documents are always generated in English; conversational responses to the user follow the conversation's language settings (e.g., the user's CLAUDE.md global instructions).
+> **Language note:** Write all new prose added during this skill's steps (discrepancy notes, `⚠️ Confirm:` lines, fold-back annotations) in English, regardless of the conversation's language.
 
 ### Step 8 — Fold back and archive (canvas level, not plan level)
 
@@ -106,7 +106,7 @@ For whichever is **missing**, ask the user whether to add it (one combined `AskU
     ]
   }
   ```
-- **Subagent cache TTL** — top-level (not under `hooks`): `"subagentPromptCacheTtl": "1h"`. This phase's own test-writing, test-running, and diff-to-canvas checks can run inside one subagent call for several turns; without this, Claude Code caps that subagent's own prompt cache at a 5-minute TTL regardless of plan, so a slow test run between turns forces a full, uncached re-read of the growing conversation.
+- **Subagent cache TTL** — top-level (not under `hooks`): `"subagentPromptCacheTtl": "1h"`. This phase can run several turns inside one subagent call; without the TTL setting, Claude Code caps its prompt cache at 5 minutes regardless of plan.
 
 ### Step 10 — Report back
 
