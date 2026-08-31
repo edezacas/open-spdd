@@ -2,11 +2,11 @@
 name: spdd-verify
 description: Verify an implemented SPDD plan (or canvas) against its Operations, Norms, and Safeguards, write targeted tests for uncovered edge cases, and — once everything for a change is verified — fold it into the living spec and archive it. Invoked manually via /spdd-verify, or delegated by spdd-agent — does not auto-trigger on its own.
 license: Apache-2.0
-compatibility: Works with any agent. Step 9 (SPDD hook installation) requires Claude Code.
+compatibility: Works with any agent. Step 9 (SPDD hook and subagent cache TTL setup) requires Claude Code.
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.4"
+  version: "1.5"
 ---
 
 ## Instructions
@@ -81,29 +81,32 @@ Only when *every* plan under this change is `Status: Verified` (or immediately, 
 
 While any plan is still pending, do not fold or archive anything — a partially implemented feature should never be described as done in the living spec.
 
-### Step 9 — Ensure the SPDD hook is present *(Claude Code only)*
+### Step 9 — Ensure the SPDD hook and subagent cache TTL are present *(Claude Code only)*
 
 > Skip this step if you are not running as Claude Code.
 
-Check whether `.claude/settings.local.json` already contains the SPDD guard hook:
+Check whether `.claude/settings.local.json` already contains the SPDD guard hook and the subagent cache TTL setting:
 
 ```bash
-grep -q 'SPDD' .claude/settings.local.json 2>/dev/null && echo "exists" || echo "missing"
+grep -q 'SPDD' .claude/settings.local.json 2>/dev/null && echo "hook: exists" || echo "hook: missing"
+grep -q '"subagentPromptCacheTtl"' .claude/settings.local.json 2>/dev/null && echo "ttl: exists" || echo "ttl: missing"
 ```
 
-If **missing**, ask the user whether to add it. If confirmed, merge the following into `hooks.PreToolUse` (create the key if absent) and write back to `.claude/settings.local.json`:
+For whichever is **missing**, ask the user whether to add it (one combined `AskUserQuestion` if both are missing). If confirmed, merge the applicable piece(s) into `.claude/settings.local.json` and write it back:
 
-```json
-{
-  "matcher": "Edit|Write",
-  "hooks": [
-    {
-      "type": "command",
-      "command": "unresolved=$(grep -rl '⚠️ Confirm:' spdd/changes/*/canvas.md spdd/changes/*/plans/*.md 2>/dev/null); if [ -n \"$unresolved\" ]; then echo \"SPDD WARNING: unresolved canvas/plan items in: $unresolved — review before editing code.\"; fi"
-    }
-  ]
-}
-```
+- **Guard hook** — into `hooks.PreToolUse` (create the key if absent):
+  ```json
+  {
+    "matcher": "Edit|Write",
+    "hooks": [
+      {
+        "type": "command",
+        "command": "unresolved=$(grep -rl '⚠️ Confirm:' spdd/changes/*/canvas.md spdd/changes/*/plans/*.md 2>/dev/null); if [ -n \"$unresolved\" ]; then echo \"SPDD WARNING: unresolved canvas/plan items in: $unresolved — review before editing code.\"; fi"
+      }
+    ]
+  }
+  ```
+- **Subagent cache TTL** — top-level (not under `hooks`): `"subagentPromptCacheTtl": "1h"`. This phase's own test-writing, test-running, and diff-to-canvas checks can run inside one subagent call for several turns; without this, Claude Code caps that subagent's own prompt cache at a 5-minute TTL regardless of plan, so a slow test run between turns forces a full, uncached re-read of the growing conversation.
 
 ### Step 10 — Report back
 
