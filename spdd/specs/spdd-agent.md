@@ -94,6 +94,18 @@
 - WHEN the user asks to change one or more phase values (regardless of whether the config was already complete)
 - THEN Step 1's completeness check always classifies an explicit change request as "not complete" — even when the applicable section is already fully valid — so it reads `spdd-agent/assets/model-bootstrap.md` for the `AskUserQuestion` mechanics (host-capability-based options) needed to ask only for the phases being changed, then writes back to the applicable section. There is no separate "explicit config request" step in `SKILL.md` — this routes through the same completeness-check/fast-path/asset-read branching as every other case, and the asset owns the only description of the `AskUserQuestion` mechanics involved.
 
+**Scenario: dependent plans launch on Implemented, not Verified**
+- WHEN `spdd-agent` orders plans by their `Depends on:` field and plan B depends on plan A
+- THEN B's implement phase launches once A has reached `Status: Implemented` (matching `spdd-implement` Step 3's dependency check) — never waiting for A to be `Status: Verified`, which would deadlock against Step 8's "once every plan is Implemented" precondition; verification still runs per plan and the fold/archive waits for every plan `Verified`
+
+**Scenario: zero-Confirm canvas still reaches Confirmed**
+- WHEN the Step 5 checkpoint gate finds zero `⚠️ Confirm:` lines in a saved canvas
+- THEN the orchestrator sets `**Status:** Confirmed` on the canvas and proceeds straight to the design phase — a canvas never lingers as `Draft` after its checkpoint
+
+**Scenario: delegated canvas skips the applicability guard**
+- WHEN `spdd-agent` delegates the canvas phase after deciding the complete route
+- THEN the subagent prompt states that routing was already decided, so `spdd-canvas` Step 2 (applicability guard) is skipped — the user is never re-asked for the canvas they already requested via the orchestrator
+
 ---
 
 ## Entities
@@ -128,6 +140,9 @@
 | Asset | `spdd-agent/assets/model-bootstrap.md` — Repair section | Re-asks only for missing/empty/malformed phase values via `AskUserQuestion`, writes back to the applicable section only |
 | Asset | `spdd-agent/assets/model-bootstrap.md` — Migration section | Proposes copying the flat `models` six values into a new `claude.models` namespace via a real foreground `AskUserQuestion`; writes only once confirmed; never touches the original flat key |
 | Asset | `spdd-agent/assets/model-bootstrap.md` — JSON shape examples | Both the flat `{"models": {...}}` and `claude`-namespaced `{"claude": {"models": {...}}}` examples |
+| Step | "Phase invocation contract" (Step 3) | Each subagent prompt carries: the skill call + the exact context listed for that phase in Steps 4–8 (canvas delegation adds: routing already decided, applicability guard skipped), the never-block rule verbatim, and report-back per the phase skill's own Report step |
+| Step | "Checkpoint gate: canvas" (Step 5) | Resolves every `⚠️ Confirm:` line in the foreground (up to 4 per call); with zero Confirm lines it sets `**Status:** Confirmed` and skips straight to the design phase |
+| Step | "Implement phase, per plan" (Step 7) | Topological order by `Depends on:` — a plan never launches before every plan it depends on has reached `Status: Implemented` (matching `spdd-implement` Step 3's dependency check); context is that one plan only |
 
 ---
 
@@ -135,5 +150,6 @@
 
 - When in doubt between direct and complete route, ALWAYS choose the complete route.
 - Do not add automatic verification that the chosen route was "the correct one".
-- Increment `metadata.version` in `spdd-agent/SKILL.md` on any edit to its instructions.
+- Increment `metadata.version` in `spdd-agent/SKILL.md` on any edit to its instructions (currently at 1.12, cumulative across changes).
+- The never-block rule quoted verbatim in Step 3 is an exact string — edits elsewhere in the file (including meta-section compression) must never alter it (verified byte-identical after the v1.12 compression).
 - Mirror any Structure/Conventions/Gotchas edit into both `CLAUDE.md` and `AGENTS.md`.

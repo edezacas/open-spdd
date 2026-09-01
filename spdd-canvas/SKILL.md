@@ -1,12 +1,12 @@
 ---
 name: spdd-canvas
-description: Generate a REASONS canvas for a new feature and save it to spdd/changes/. Use BEFORE writing code. Invoked manually via /spdd-canvas, or delegated by spdd-agent as the first phase of its automated flow — does not auto-trigger on its own.
+description: Generate a REASONS canvas for a new feature before any code is written, saved to spdd/changes/. Delegated by spdd-agent or invoked manually via /spdd-canvas — does not auto-trigger on its own.
 license: Apache-2.0
-compatibility: Works with any agent. Step 11 (SPDD hook and subagent cache TTL setup) requires Claude Code.
+compatibility: Works with any agent. Step 9 (SPDD hook and subagent cache TTL setup) requires Claude Code.
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.8"
+  version: "2.9"
 ---
 
 ## Today's date and time
@@ -27,49 +27,34 @@ If no feature description was provided, ask the user for a brief description bef
 
 If the description reads as a trivial change (typo, config tweak, single obvious line) or as an open-ended exploratory spike with no fixed shape yet, ask in one line whether the user wants the full canvas or would rather skip it and go straight to editing. If they skip it, stop here — do not generate a canvas.
 
-### Step 3 — Output language
+### Step 3 — Read the base template
 
-Generate all document content in English, regardless of the language used in the feature description or conversation. This includes section headings, labels, User story, Acceptance Criteria, Entities, Norms, Safeguards, and any inline notes.
+Read [template-reasons.md](assets/template-reasons.md) — its header note fixes English as the language of all document content.
 
-### Step 4 — Read the base template
-
-Read [template-reasons.md](assets/template-reasons.md).
-
-### Step 5 — Understand the project
+### Step 4 — Understand the project
 
 If the stack and conventions are not clear from the project context, inspect the project structure before generating the canvas.
 
-### Step 6 — Freshness check
+### Step 5 — Context: freshness, spec, norms, and risk
 
-Before reading the spec, check whether it has fallen behind code changes made outside the SPDD flow (e.g. a manual refactor that skipped `spdd-sync`).
+Before filling the canvas:
 
-1. Infer the domain the same way as the next step (folder conventions, e.g. `src/billing/` → `billing`).
-2. If `spdd/specs/<domain>.md` doesn't exist yet, skip this check — there's nothing to compare against.
-3. Otherwise, get the spec's last commit date and any domain commits since then:
+1. Infer the domain from folder conventions (e.g. `src/billing/` → `billing`).
+2. **Freshness check.** If `spdd/specs/<domain>.md` exists, check whether it has fallen behind code changes made outside the SPDD flow (e.g. a manual refactor that skipped `spdd-sync`) — get its last commit date and any domain commits since then:
    ```bash
    spec_date=$(git log -1 --format=%cI -- spdd/specs/<domain>.md)
    git log --format='%h %cI %s' --since="$spec_date" -- <domain-folder>/
    ```
-   If either command fails (not a git repo, no matching folder), skip this check silently.
-4. If that second command returns any commits, stop and tell the user:
-   `Domain <domain> has code changes not reflected in the spec (last commit: <date/hash>, last spec sync: <date>). Run spdd-sync before continuing?`
-   This is a conversational message, not persisted document content — phrase it in whatever language the current conversation is in, same as every other conversational reply from this skill.
-   Ask via `AskUserQuestion` with options: "Run spdd-sync first" (invoke `spdd-sync` for this domain, then continue) or "Continue anyway" (proceed at their own risk — note the staleness in the final report).
-5. Do not generate the canvas until the human has decided.
+   If either command fails (not a git repo, no matching folder), skip this check silently. If the second returns commits: in the foreground, stop and ask via `AskUserQuestion` — "Run spdd-sync first" (invoke `spdd-sync` for this domain, then continue) or "Continue anyway" (proceed at their own risk — note the staleness in the final report); do not generate the canvas until the human has decided. In the background (no `AskUserQuestion`), do not stop: continue and add `⚠️ Confirm: spec stale — last sync <date>, <n> commits since` for the orchestrator's checkpoint to resolve.
+3. **Read the living spec.** Read `spdd/specs/<domain>.md` if it exists. If the domain can't be inferred with confidence, use `spdd/specs/general.md` as a fallback and say so in the final report. Use whatever is found to avoid contradicting current system behavior, and to mark explicitly which parts of the canvas are new requirements versus changes to something already spec'd.
+4. **Read global norms.** Read `spdd/norms.md` (project root) if it exists — see [template-norms.md](assets/template-norms.md) for its expected shape. Carry its content over as starting Norms/Safeguards in the new canvas, in addition to the feature-specific ones, clearly marked as coming from `spdd/norms.md`. Never create or edit this file — it's team-maintained, read-only for this skill.
+5. **Identify risk and ambiguity.** Actively look for ambiguous domain concepts, unclear boundaries, and risky assumptions in the feature description — don't wait for them to surface incidentally while filling the template. Feed what you find into the `⚠️ Confirm:` lines and the Safeguards section.
 
-### Step 7 — Context and risk
+### Step 6 — Determine layers
 
-Do both of the following before filling the canvas:
+Only ask about layers if the feature description explicitly mentions two separate concerns (e.g. "backend + frontend", "API + CLI"). If so, ask: one canvas per layer or a single unified canvas? In the background (no `AskUserQuestion`), take the default — a single unified canvas — and add `⚠️ Confirm: layers — the description mentions separate concerns; confirm whether one canvas per layer is wanted`.
 
-- **Read the living spec.** Read `spdd/specs/<domain>.md` for the domain identified in Step 6 if it exists. If the domain can't be inferred with confidence, use `spdd/specs/general.md` as a fallback and say so in the final report. Use whatever is found to avoid contradicting current system behavior, and to mark explicitly which parts of the canvas are new requirements versus changes to something already spec'd.
-- **Read global norms.** Read `spdd/norms.md` (project root) if it exists — see [template-norms.md](assets/template-norms.md) for its expected shape. Carry its content over as starting Norms/Safeguards in the new canvas, in addition to the feature-specific ones, clearly marked as coming from `spdd/norms.md`. Never create or edit this file — it's team-maintained, read-only for this skill.
-- **Identify risk and ambiguity.** Actively look for ambiguous domain concepts, unclear boundaries, and risky assumptions in the feature description — don't wait for them to surface incidentally while filling the template. Feed what you find into the `⚠️ Confirm:` lines and the Safeguards section.
-
-### Step 8 — Determine layers
-
-Only ask about layers if the feature description explicitly mentions two separate concerns (e.g. "backend + frontend", "API + CLI"). If so, ask: one canvas per layer or a single unified canvas?
-
-### Step 9 — Generate a filled canvas
+### Step 7 — Generate a filled canvas
 
 Fill the template with real, project-specific content. Use actual file paths, the project's real model layer, and concrete operations — no generic placeholders.
 
@@ -77,11 +62,11 @@ Write Acceptance Criteria and Safeguards edge cases as `WHEN/THEN` scenarios (se
 
 Mark any decision that requires user input with `⚠️ Confirm:` and propose a sensible default.
 
-### Step 10 — Save the file
+### Step 8 — Save the file
 
 Save to `spdd/changes/SPDD-YYYY-MM-DD-HHMM-slug/canvas.md` (kebab-case slug, today's date and time). Create the directory if needed.
 
-### Step 11 — Ensure the SPDD hook and subagent cache TTL are present *(Claude Code only)*
+### Step 9 — Ensure the SPDD hook and subagent cache TTL are present *(Claude Code only)*
 
 > Skip this step if you are not running as Claude Code.
 
@@ -94,7 +79,7 @@ grep -q '"subagentPromptCacheTtl"' .claude/settings.local.json 2>/dev/null && ec
 
 For whichever is **missing**, ask the user whether to add it (one combined `AskUserQuestion` if both are missing). If confirmed, read [hook-setup.md](assets/hook-setup.md) for the exact JSON and merge it into `.claude/settings.local.json`.
 
-### Step 12 — Report back
+### Step 10 — Report back
 
 Show the saved file path, a 3-bullet summary, and all `⚠️ Confirm:` lines the user must resolve before implementing.
 

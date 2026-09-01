@@ -119,6 +119,18 @@
         "Safeguards section headings and body content are in English (e.g. 'Tests to write', 'Edge cases to consider', not Spanish equivalents)",
         "No mixing of Spanish and English within structured content (e.g. entity names or scenario descriptions stay consistent in language)"
       ]
+    },
+    {
+      "id": 54,
+      "prompt": "/spdd-canvas [describe a new feature for a domain whose spdd/specs/<domain>.md predates recent commits to that domain's source folder] — run as a background subagent with no AskUserQuestion available",
+      "expected_output": "In background, the freshness check does not stop the run waiting for a human decision (never-block rule): the skill continues, generates and saves the canvas, and adds a '⚠️ Confirm: spec stale' line recording the last spec-sync date and the number of commits since, for the orchestrator's foreground checkpoint to resolve.",
+      "setup": "Create spdd/specs/<domain>.md and commit it, then make and commit at least one further change to that domain's source folder, and run the skill as a background subagent (no AskUserQuestion).",
+      "assertions": [
+        "The skill does not stay blocked waiting for an answer about the stale spec",
+        "The canvas is still generated and saved under spdd/changes/",
+        "A '⚠️ Confirm: spec stale' line is added, including the last-sync date and the number of commits since",
+        "No AskUserQuestion call is made"
+      ]
     }
   ]
 }

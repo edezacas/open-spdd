@@ -58,7 +58,7 @@ handed to `spdd-implement` as artificial separate plans.
 ## Norms
 
 - Simplicity First: the language rule is a fixed, unconditional instruction — no conditional logic or per-project configuration.
-- Increment `metadata.version` of `spdd-design/SKILL.md` whenever its instructions are edited (currently at 1.3, cumulative across changes).
+- Increment `metadata.version` of `spdd-design/SKILL.md` whenever its instructions are edited (currently at 1.4, cumulative across changes).
 - Do not translate historical content already written in another language (e.g. plans generated before this change) — the rule is forward-only.
 - New prose `spdd-verify` adds while folding a change into this spec, or during its Diff-to-canvas check, must also be in English (see `spdd-verify/SKILL.md`'s own language note near Steps 7–8).
 - The homogeneity criterion requires both the same Operation type AND the same file kind — groups that are small but differ in Operation type must still be split.

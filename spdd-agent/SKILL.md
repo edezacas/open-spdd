@@ -6,34 +6,22 @@ compatibility: Works with any agent. Per-phase model selection and subagent isol
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.11"
+  version: "1.12"
 ---
 
 ## Instructions
 
-### A note on "AskUserQuestion" throughout this skill
+### AskUserQuestion and decision transparency
 
-Every foreground step below (0, 1, 2, 5, 6, 8) that says "ask via `AskUserQuestion`" means: use
-the host's structured, blocking question mechanism if it has one (in Claude Code, the
-`AskUserQuestion` tool). If the host has no such mechanism, ask the same question in plain text in
-your response and wait for the user's reply before continuing — same capability-not-identity
-treatment already applied to model selection (Step 1) and subagent detection (Step 2). This does
-not affect the never-block rule for background subagents (Step 3), which correctly assumes no
-question mechanism of any kind is available there.
+Every foreground step that says "ask via `AskUserQuestion`" means: use the host's structured, blocking question mechanism if it has one (in Claude Code, the `AskUserQuestion` tool); otherwise ask the same question in plain text and wait for the user's reply before continuing. This never applies to background subagents (Step 3), which follow the never-block rule instead.
 
-### Decision transparency
-
-Whenever this skill resolves a choice on its own — without a blocking `AskUserQuestion` turn — show it to the user with one short, visible line, immediately before acting on it:
+Whenever this skill resolves a choice on its own — without a blocking question turn — show one short line immediately before acting on it, phrased in the conversation's language (only the bracketed label stays fixed):
 
 ```
 [automatic decision] <what it decided> — <why>
 ```
 
-This is a conversational response, not persisted document content — phrase it in whatever language the current conversation is in (e.g. the user's global `CLAUDE.md` instructions), same as every other conversational reply from this skill; only the bracketed label stays as a fixed marker.
-
-This applies to every foreground autonomous decision in this flow: the routing choice (Step 0, direct route only — folded into its existing transparency line below), the Claude Code host detection (Step 1), and the isolation-mode detection (Step 2). It does not apply inside a background subagent (Step 3), which has no output channel of its own for this — its pending decisions still surface as `⚠️ Confirm:` lines per the never-block rule.
-
-Reserve `⚠️ Confirm:` — which blocks and requires a real, foreground `AskUserQuestion` — for:
+Reserve `⚠️ Confirm:` — a real, foreground question that blocks — for:
 
 - Business-rule ambiguity the agent cannot resolve on its own.
 - Any action with a real side effect: installing the SPDD guard hook, writing configuration, deleting or overwriting an existing file.
@@ -53,7 +41,6 @@ Before starting the canvas phase, analyze the user's description to determine wh
 - **Direct route** (implement without canvas → design → verify): Activates when:
   - The change touches **1–2 files**, is mechanical or of evident scope, **and** there is no business or architectural ambiguity.
   - When in doubt between direct and complete, **always choose complete** — the complete route is the safe default.
-  - Example: "fix the typo in file X, line Y" or "add a missing export to module A".
 
 - **Complete route** (canvas → design → implement → verify): Activates when:
   - The change touches **3+ files**, requires understanding multiple system parts, **or** there is any business/architectural ambiguity.
@@ -104,18 +91,18 @@ Display the transparency line for this choice before Step 3/3-alt runs — phras
 
 For each phase, build one subagent call: generic `subagent_type` the host provides for ad-hoc work (in Claude Code, `general-purpose`), `model` from the config loaded in Step 1, and a self-contained `prompt`. The `prompt` always includes, in this order:
 
-1. **The skill call**, naming the phase skill (`spdd-canvas`, `spdd-design`, `spdd-implement`, or `spdd-verify`) and the exact context it needs (table in Step 4) — nothing more, nothing from this conversation's history.
+1. **The skill call**, naming the phase skill (`spdd-canvas`, `spdd-design`, `spdd-implement`, or `spdd-verify`) and the exact context listed for it in Steps 4–8 — nothing more, nothing from this conversation's history. When delegating the canvas phase, additionally state that routing was already decided (complete route), so the canvas's applicability guard (its Step 2) is skipped.
 2. **The never-block rule**, verbatim:
 
    > You do not have `AskUserQuestion` — you're running in the background, with no live user turn. Never stay blocked waiting for an answer that cannot arrive. If a step asks you to confirm a **content decision**, take the suggested default, continue, and add a `⚠️ Confirm:` line so it gets resolved later. If it asks you to confirm an **action with a side effect** (writing config, installing hooks, anything outside the artifact you're generating), do not execute it or assume a default in its favor — skip it, leave it noted as a pending `⚠️ Confirm:`, and don't touch the filesystem for that step.
 
-3. **What to report back on completion**: the file path saved (or updated), a short summary, and every pending `⚠️ Confirm:` line.
+3. **What to report back on completion**: as specified by the phase skill's own Report step (saved/updated path, short summary, pending `⚠️ Confirm:` lines).
 
 Each subagent call is asynchronous: this skill's turn ends when it's issued, and resumes on the completion notification. Do not simulate or predict a subagent's result — wait for the real one.
 
 ### Step 3-alt — Inline mode
 
-If Step 2 found no subagent mechanism: invoke `Skill(<phase>)` directly in the current context, with the same context scoping as the table in Step 4. This runs synchronously in the foreground, so `AskUserQuestion` is available for real — the never-block rule doesn't apply, and any `⚠️ Confirm:` the phase raises can be resolved immediately instead of deferred. Orchestration and checkpoints (Steps 4–8) stay the same either way; only isolation and per-phase model are lost.
+If Step 2 found no subagent mechanism: invoke `Skill(<phase>)` directly in the current context, with the same context scoping listed for the phase in Steps 4–8. This runs synchronously in the foreground, so `AskUserQuestion` is available for real — the never-block rule doesn't apply, and any `⚠️ Confirm:` the phase raises can be resolved immediately instead of deferred. Orchestration and checkpoints (Steps 4–8) stay the same either way; only isolation and per-phase model are lost.
 
 ### Step 4 — Canvas phase
 
@@ -125,7 +112,7 @@ Launch (or run inline) the `canvas` phase. Context: the user's feature descripti
 
 Once the canvas is saved, if it contains any `⚠️ Confirm:` lines, do not advance. Resolve **every one** with a real `AskUserQuestion` call in the foreground — split across as many calls of up to 4 questions as needed, never skipped for volume. Present the phase's default as the recommended option, never as an assumed answer. Update `canvas.md` with the confirmed values and set `**Status:** Confirmed`.
 
-If the canvas has zero `⚠️ Confirm:` lines, skip straight to Step 6.
+If the canvas has zero `⚠️ Confirm:` lines, set `**Status:** Confirmed` and skip straight to Step 6.
 
 ### Step 6 — Design phase
 
@@ -133,7 +120,7 @@ Launch (or run inline) the `design` phase. Context: the path to the now-confirme
 
 ### Step 7 — Implement phase, per plan
 
-Order the plans by their `Depends on:` field (topological order — a plan never launches before every plan it depends on has finished Step 8). For each plan in that order, launch (or run inline) the `implement` phase. Context: the path to that one plan only — not the other plans, not the canvas beyond what `spdd-implement` itself reads.
+Order the plans by their `Depends on:` field (topological order — a plan never launches before every plan it depends on has reached `Status: Implemented`, matching `spdd-implement` Step 3's dependency check). For each plan in that order, launch (or run inline) the `implement` phase. Context: the path to that one plan only — not the other plans, not the canvas beyond what `spdd-implement` itself reads.
 
 ### Step 8 — Verify phase
 

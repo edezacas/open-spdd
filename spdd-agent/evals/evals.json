@@ -239,6 +239,38 @@
         "AskUserQuestion is called for all six phase values, since nothing in the unparseable file can be trusted",
         "After the run, ~/.config/spdd/config.json is valid JSON with the applicable section holding all six phases as non-empty strings"
       ]
+    },
+    {
+      "id": 69,
+      "prompt": "hay que implementar [a feature whose canvas gets split into plan A and plan B, where plan B declares 'Depends on: A'. Plan A has just finished its implement phase and is Status: Implemented, but not yet Verified]",
+      "expected_output": "spdd-agent orders the plans topologically and launches plan B's implement phase once plan A has reached Status: Implemented — it does not deadlock waiting for plan A to finish verification first. Verification still runs per plan (Step 8), and the fold/archive waits until every plan is Status: Verified.",
+      "setup": "A change folder whose canvas is split into two plans; plan A Status: Implemented, plan B Status: Draft with 'Depends on: A'.",
+      "assertions": [
+        "Plan B's implement phase launches once plan A is Status: Implemented",
+        "The orchestrator does not wait for plan A to be Status: Verified before launching plan B's implement phase",
+        "Verification of each plan still runs, and the fold-back/archive waits for every plan to be Status: Verified"
+      ]
+    },
+    {
+      "id": 70,
+      "prompt": "hay que implementar [a feature whose generated canvas contains zero '⚠️ Confirm:' lines]",
+      "expected_output": "At the Step 5 checkpoint gate, the canvas has no Confirm lines to resolve; the orchestrator sets '**Status:** Confirmed' on the canvas and proceeds straight to the design phase.",
+      "setup": "Run the complete route on a feature description unambiguous enough that the generated canvas carries no ⚠️ Confirm: lines.",
+      "assertions": [
+        "The canvas header shows 'Status: Confirmed' before the design phase starts",
+        "No AskUserQuestion is raised at the canvas checkpoint",
+        "The flow proceeds to the design phase without leaving the canvas as Status: Draft"
+      ]
+    },
+    {
+      "id": 71,
+      "prompt": "hay que implementar [a 3+ files feature with no ambiguity, so spdd-agent routes it to the complete route and delegates the canvas phase as a background subagent]",
+      "expected_output": "The delegated canvas subagent prompt states that routing was already decided (complete route), so the canvas's applicability guard (spdd-canvas Step 2) is skipped — the user is never re-asked whether they want the canvas they already requested via the orchestrator.",
+      "assertions": [
+        "The delegated canvas subagent prompt states routing was already decided (complete route)",
+        "The canvas is generated without asking the user whether to skip canvas generation",
+        "No '⚠️ Confirm:' line about skipping canvas generation appears in the canvas or the phase report"
+      ]
     }
   ]
 }

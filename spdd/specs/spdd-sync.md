@@ -50,6 +50,6 @@ context spend fewer reasoning tokens.
 ## Norms
 
 - Simplicity First: the language rule is a fixed, unconditional instruction — no conditional logic or per-project configuration.
-- Increment `metadata.version` of `spdd-sync/SKILL.md` whenever its instructions are edited (bumped for this change).
+- Increment `metadata.version` of `spdd-sync/SKILL.md` whenever its instructions are edited (currently at 1.3, cumulative across changes).
 - Do not retranslate a spec's pre-existing content as a side effect of an unrelated partial update — only newly written text follows the English-only rule; a manual full-spec migration is a separate, deliberate decision left to the team.
 - This norm does not change Step 4's behavior guardrail (never rewrite the Requirements/behavior contract silently) — it only governs the language of the text `spdd-sync` is already allowed to write in Step 5.

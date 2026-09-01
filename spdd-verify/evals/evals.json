@@ -184,6 +184,18 @@
         "No other part of the plan/canvas is silently translated as a side effect",
         "The plan/canvas is not marked 'Status: Verified'"
       ]
+    },
+    {
+      "id": 62,
+      "prompt": "/spdd-verify [verify a plan whose parent canvas contains a Norm and a Safeguard edge case that do not appear in the plan itself]",
+      "expected_output": "Step 2 reads the chosen plan AND canvas.md in full — Requirements, Norms, and Safeguards live in the canvas and apply to every plan. The canvas-only Safeguard edge case gets a targeted test and the canvas-only Norm is checked, even though neither appears in the plan.",
+      "setup": "A change folder with a plans/ folder; the plan lists only a subset of Operations, while the canvas carries a Norm and a Safeguard edge case not duplicated into the plan.",
+      "assertions": [
+        "The skill reads canvas.md in addition to the plan being verified",
+        "The Safeguard edge case that lives only in the canvas gets a targeted test",
+        "The canvas-only Norm is checked even though it is absent from the plan",
+        "No canvas-only content is silently skipped because the plan does not mention it"
+      ]
     }
   ]
 }

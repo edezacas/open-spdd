@@ -12,6 +12,8 @@ Each skill has an `evals/evals.json` following the [agentskills.io evaluation fo
 
 To run evals, load the `evals.json`, execute each prompt against your project (with and without the skill), grade the assertions, and record results in `evals/workspace/` (gitignored). See the agentskills.io docs for the full workspace structure and grading format.
 
+When `spdd-verify` verifies one of this repo's own skills (its Step 4 eval-suite branch), the harness procedure to use is the one described in this section — the repo-specific pointer that used to live in `spdd-verify/SKILL.md` was relocated here (2026-09-01); in any other project, `spdd-verify`'s generic eval-suite rule applies as written in its own `SKILL.md`.
+
 ## Structure
 ```
 spdd-agent/SKILL.md                   # orchestrates canvas → design → implement → verify from one feature description

@@ -1,12 +1,12 @@
 ---
 name: spdd-implement
-description: Implement a feature from a plan produced by spdd-design. Never implements directly from the canvas's Operations. Reads the canvas and the chosen plan, checks for unresolved items and unmet dependencies, implements step by step, and updates the canvas or plan if anything diverges during development. Invoked manually via /spdd-implement, or delegated by spdd-agent — does not auto-trigger on its own.
+description: Implement a feature from an spdd-design plan — never directly from the canvas's Operations; checks unresolved items and dependencies, and updates the canvas or plan on divergence. Delegated by spdd-agent or invoked manually via /spdd-implement — does not auto-trigger on its own.
 license: Apache-2.0
 compatibility: Works with any agent. Step 5 (SPDD hook and subagent cache TTL setup) requires Claude Code.
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.4"
+  version: "2.5"
 ---
 
 ## Instructions

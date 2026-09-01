@@ -32,6 +32,7 @@ reading these documents as context spend fewer reasoning tokens.
 | Name | Path | Notes |
 |------|------|-------|
 | Step "Output language" | `spdd-implement/SKILL.md` (Step 0) | Replaced the former "Detect output language" step — no longer detects or asks for the user's language; fixes "English" as the language of all document content generated or modified during implementation |
+| Step "Ensure the SPDD hook and subagent cache TTL" (Step 5) | `spdd-implement/SKILL.md` + `assets/hook-setup.md` | Claude Code only; lazy-loaded since v2.4 — inline grep check against `.claude/settings.local.json`, asset read only when the hook or TTL is missing |
 
 ---
 
@@ -47,7 +48,7 @@ reading these documents as context spend fewer reasoning tokens.
 ## Norms
 
 - Simplicity First: the language rule is a fixed, unconditional instruction — no conditional logic or per-project configuration.
-- Increment `metadata.version` of `spdd-implement/SKILL.md` whenever its instructions are edited (bumped for this change).
+- Increment `metadata.version` of `spdd-implement/SKILL.md` whenever its instructions are edited (currently at 2.5, cumulative across changes).
 - Do not translate historical content already written in another language (e.g. divergence notes written before this change) — the rule is forward-only.
 - This plan is implemented after `plan-01-spdd-canvas.md`; the eval ID range it uses is computed as the repo-wide max at implementation time, so it necessarily comes after `spdd-canvas`'s IDs.
 - Test coverage: `spdd-implement/evals/evals.json` gained new cases 54–55, verifying that divergence notes written with Spanish conversational context still land in English.
