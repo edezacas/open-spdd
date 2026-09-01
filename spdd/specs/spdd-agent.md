@@ -34,6 +34,42 @@
 **Out of scope (deliberate):**
 - No automatic verification is added that the chosen route ("direct" vs. "complete") was "the correct one" — it is deliberately heuristic and fallible; real quality control lives in a separate improvement (diff vs. canvas in `spdd-verify`, not yet implemented).
 
+**Scenario: host detection runs before Step 1 reads the config**
+- WHEN `spdd-agent` reaches Step 1 ("Load or bootstrap the model configuration") on the complete route
+- THEN it first determines whether the current host is Claude Code (a `Bash` check of the `CLAUDECODE` env var — prints `1` for Claude Code, anything else / an error / `Bash` being unavailable means "not detected") before deciding which section of `~/.config/spdd/config.json` to read or write
+
+**Scenario: Claude Code detected, nested config already present**
+- WHEN the host is detected as Claude Code and `~/.config/spdd/config.json` already contains a `claude` namespace with all six phase values non-empty
+- THEN Step 1 reads model values from that `claude` namespace and proceeds exactly as today, using those six values for Steps 4–8
+
+**Scenario: Claude Code detected, only legacy flat config present**
+- WHEN the host is detected as Claude Code and the config file exists with a top-level flat `models` key but no `claude` namespace
+- THEN `spdd-agent` treats this as a one-time migration, not ordinary repair: it proposes copying the flat key's six values into a new `claude.models` namespace via a real foreground `AskUserQuestion` (writing the file is a side effect), and writes only once confirmed — it never silently reads the flat key as if it were Claude-Code-scoped, and never deletes or modifies the original flat key
+
+**Scenario: non-Claude-Code host uses the current flat shape**
+- WHEN the host is detected as anything other than Claude Code (opencode, codex, or detection is inconclusive)
+- THEN Step 1 reads/writes the top-level flat `models` key exactly as it does today — no behavior change for non-Claude-Code hosts
+
+**Scenario: first-run bootstrap under Claude Code writes the nested shape**
+- WHEN `~/.config/spdd/config.json` does not exist yet and the host is detected as Claude Code
+- THEN the bootstrap flow (Step 1.1) writes the new nested `claude` namespace (`{"claude": {"models": {"canvas": ..., "design": ..., "implement": ..., "verify": ..., "sync": ..., "migrate": ...}}}`) instead of the flat top-level `models` key
+
+**Scenario: explicit config view/change request resolves against the detected namespace**
+- WHEN the user asks to view or change the per-phase model configuration ("qué modelo usa implement", "cambia verify a sonnet") while running under Claude Code
+- THEN `spdd-agent` reads and writes the `claude` namespace instead of the flat top-level key, using the same host detection as the rest of this feature
+
+**Scenario: dual-key precedence when both shapes are present**
+- WHEN Claude Code is detected and the config file contains both a flat `models` key and a `claude` namespace (partially migrated, or hand-edited)
+- THEN Step 1 reads only from the `claude` namespace and leaves the flat key untouched — never merges or deletes it automatically
+
+**Scenario: detection is inconclusive**
+- WHEN Step 1's host-detection sub-step cannot confidently determine the host (signal absent, ambiguous, or the detection mechanism itself errors)
+- THEN `spdd-agent` falls back to the flat top-level `models` shape — it never guesses `claude` on uncertain evidence, since guessing wrong on a write would corrupt the file for whichever host is actually running
+
+**Scenario: config file matches neither valid shape**
+- WHEN the JSON parses but matches neither the flat nor the `claude`-namespaced schema (e.g. hand-edited)
+- THEN `spdd-agent` treats it the same as the missing/empty-value repair path — re-asking only for what's unresolvable via `AskUserQuestion`, without overwriting unrelated valid keys
+
 ---
 
 ## Entities
@@ -41,7 +77,9 @@
 | Name | Path | Notes |
 |------|------|-------|
 | "Routing" section (Step 0) | `spdd-agent/SKILL.md` | Evaluates direct vs. complete route before any other step |
-| Model config | `~/.config/spdd/config.json` | Conditional bootstrap: only triggers if the chosen route is "complete" |
+| Model config | `~/.config/spdd/config.json` | Conditional bootstrap: only triggers if the chosen route is "complete". Since the claude-code-config-namespace feature: flat `{"models": {...}}` by default, or nested `{"claude": {"models": {...}}}` when the host is detected as Claude Code — never both merged |
+| "Load or bootstrap the model configuration" (Step 1) | `spdd-agent/SKILL.md` | Detects the host first, then branches config read/write between the flat top-level `models` key and the `claude`-namespaced `claude.models` key |
+| Config bootstrap/repair evals | `spdd-agent/evals/evals.json` (evals 31–38, 48) | Covers bootstrap, repair, migration, dual-key precedence, and malformed-shape recovery for both the flat and `claude`-namespaced config shapes |
 
 ---
 
@@ -53,6 +91,12 @@
 | Route | Direct route | Implements without a canvas or plan, runs the test suite for the affected area, annotates a summary in `spdd/specs/<domain>.md` only if tests pass |
 | Route | Complete route | canvas → design → implement → verify, unchanged from the pre-existing flow |
 | Output | Transparency line | `Direct route: <reason> → implementing without a canvas.` — shown whenever the direct route is chosen, before executing any change |
+| Step | "Detect Claude Code host" | Sub-step at the start of Step 1, before the existing file-exists check — a `Bash` check of the `CLAUDECODE` env var determines Claude-Code vs. other/inconclusive |
+| Step | "Load or bootstrap the model configuration" (Step 1.1, bootstrap) | Writes to the `claude` namespace when Claude Code is detected, the flat top-level `models` key otherwise |
+| Step | "Load or bootstrap the model configuration" (Step 1.2, existing file) | Reads from the `claude` namespace when detected and present; triggers the migration path (gated behind a real foreground `AskUserQuestion`) when detected but only the flat key is present |
+| Step | "Explicit config request" | Same namespace branch as bootstrap/read, so view/change requests resolve consistently |
+| Config write | `claude` namespace bootstrap | `{"claude": {"models": {"canvas": ..., "design": ..., "implement": ..., "verify": ..., "sync": ..., "migrate": ...}}}` |
+| Config write | Legacy flat fallback | `{"models": {"canvas": ..., ...}}` — unchanged, used whenever Claude Code is not detected |
 
 ---
 
@@ -61,3 +105,4 @@
 - When in doubt between direct and complete route, ALWAYS choose the complete route.
 - Do not add automatic verification that the chosen route was "the correct one".
 - Increment `metadata.version` in `spdd-agent/SKILL.md` on any edit to its instructions.
+- Mirror any Structure/Conventions/Gotchas edit into both `CLAUDE.md` and `AGENTS.md`.

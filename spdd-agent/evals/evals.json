@@ -4,9 +4,10 @@
     {
       "id": 31,
       "prompt": "usa spdd-agent para ver qué modelo tiene configurado cada fase",
-      "expected_output": "The skill classifies this as a config request (Step 0), reports the six current phase models (bootstrapping the config first if it doesn't exist yet), and stops — it never starts the feature flow.",
+      "expected_output": "The skill classifies this as a config request (Step 0). Step 1 first detects the host (the new 'Detect Claude Code host' sub-step). If Claude Code is detected, it reports the six current phase models from the `claude.models` namespace (bootstrapping into that namespace first if the file doesn't exist yet). If Claude Code is not detected (or detection is inconclusive), it reports them from the flat top-level `models` key instead, exactly as before. Either way it stops — it never starts the feature flow. If the file happens to contain both a flat `models` key and a `claude` namespace, the Claude-Code branch reports only from `claude`, never merging or falling back to the flat key.",
       "assertions": [
         "The response lists a model for all six phases: canvas, design, implement, verify, sync, migrate",
+        "The values reported come from the namespace matching the detected host (`claude.models` under Claude Code, flat `models` otherwise) — never a mix of both",
         "No file is created under spdd/changes/",
         "No canvas/design/implement/verify subagent is launched"
       ]
@@ -14,30 +15,33 @@
     {
       "id": 32,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "On first run with no existing config, the skill resolves the model for all six phases via AskUserQuestion (grouped into 1-2 calls) and writes ~/.config/spdd/config.json before touching the feature request at all.",
-      "setup": "Ensure ~/.config/spdd/config.json does not exist before running.",
+      "expected_output": "On first run with no existing config, Step 1 first detects the host via the new 'Detect Claude Code host' sub-step (the CLAUDECODE env check), then resolves the model for all six phases via AskUserQuestion (grouped into 1-2 calls) before touching the feature request at all. If Claude Code is detected, it writes the nested `{\"claude\":{\"models\":{...}}}` shape. If Claude Code is not detected — including when detection is inconclusive (env var absent, ambiguous, or the check itself errors) — it writes the flat top-level `{\"models\":{...}}` shape exactly as before; a wrong guess would risk corrupting the file for whichever host is actually running, so an inconclusive result always falls back to flat.",
+      "setup": "Ensure ~/.config/spdd/config.json does not exist before running. Exercise this once with Claude Code detected (CLAUDECODE=1) and once with a simulated non-Claude-Code / inconclusive host (CLAUDECODE unset or the detection check simulated as failing).",
       "assertions": [
-        "~/.config/spdd/config.json exists after the run, with all six phases set to one of opus/sonnet/haiku/fable",
-        "The model selection is resolved via AskUserQuestion before any file is written under spdd/changes/",
-        "The canvas phase (and everything after it) only starts once the config file exists"
+        "When Claude Code is detected: ~/.config/spdd/config.json exists after the run with a top-level `claude.models` object holding all six phases set to one of opus/sonnet/haiku/fable, and no flat top-level `models` key is created",
+        "When Claude Code is not detected or detection is inconclusive: ~/.config/spdd/config.json exists after the run with a flat top-level `models` object holding all six phases, and no `claude` key is created",
+        "In both branches, the model selection is resolved via AskUserQuestion before any file is written under spdd/changes/",
+        "In both branches, the canvas phase only starts once the config file exists"
       ]
     },
     {
       "id": 33,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "The config file exists but one phase has an empty/missing model value. The skill treats only that value as absent, re-asks for that phase alone via AskUserQuestion, and leaves the other five untouched. A non-empty free-text identifier (even one that isn't opus/sonnet/haiku/fable, e.g. a provider-qualified id for a non-Claude-Code host) is accepted as-is and never treated as invalid.",
-      "setup": "Create ~/.config/spdd/config.json with a valid model for five phases and an empty string (or missing key) for one phase (e.g. canvas).",
+      "expected_output": "Step 1's existing-file branch first detects the host, then resolves against the matching section. (a) Claude Code detected, `claude.models` already has all six non-empty values: read and proceed, nothing asked. (b) Claude Code detected, one of the six `claude.models` values is missing/empty: only that phase is re-asked via AskUserQuestion (same repair behavior as today's flat config), then written back into `claude.models` — the other five values are untouched. A non-empty free-text identifier (even one that isn't opus/sonnet/haiku/fable) is accepted as-is. (c) Claude Code detected, the file has a flat top-level `models` key but no `claude` namespace: this is the one-time migration path — the skill does not silently read the flat key as if it were Claude-Code-scoped; instead it proposes, via a real foreground AskUserQuestion (writing the file is a side effect), copying the flat key's six values into a new `claude.models` namespace, and only writes once confirmed, leaving the original flat key untouched. (d) Host is not Claude Code: the flat top-level `models` key is read/repaired directly, exactly as before, with no migration proposed and no `claude` key touched.",
+      "setup": "Prepare four config-file variants and run once against each: (a) `claude.models` complete, Claude Code detected; (b) `claude.models` with one empty/missing phase (e.g. canvas), Claude Code detected; (c) flat `models` complete but no `claude` key, Claude Code detected; (d) flat `models` complete, non-Claude-Code host detected.",
       "assertions": [
-        "AskUserQuestion is called only for the phase with the empty/missing value, not for the other five",
-        "The five already-valid phases in ~/.config/spdd/config.json are unchanged after the run",
-        "The corrected phase's value is a non-empty string"
+        "(a) No AskUserQuestion is called; the six values used for Steps 4-8 match `claude.models` exactly",
+        "(b) AskUserQuestion is called only for the phase with the empty/missing value in `claude.models`; the other five values and the top-level structure are unchanged after the run",
+        "(c) The skill does not read the flat `models` key as Claude-Code-scoped without asking first; AskUserQuestion is called before any write; after confirmation, `claude.models` exists with the flat key's six values copied over, and the original flat `models` key is still present and byte-for-byte unchanged",
+        "(d) The flat `models` key is read/repaired directly, no AskUserQuestion about migration is raised, and no `claude` key is created",
+        "If a config file has both a flat `models` key and a `claude` namespace already present (partially migrated or hand-edited) and Claude Code is detected, the values used come only from `claude` — the flat key is never merged, read as a fallback, or deleted"
       ]
     },
     {
       "id": 34,
       "prompt": "hay que implementar una función que calcule el descuento aplicable a un pedido según su importe, sin que existan reglas de descuento documentadas todavía",
       "expected_output": "The canvas phase runs as a background subagent with no AskUserQuestion available. It never blocks: it takes the suggested default for the undocumented discount-rule decision and records it as a '⚠️ Confirm:' line, and it does not install the SPDD guard hook (a side-effect action) if missing, leaving that as a separate '⚠️ Confirm:' instead.",
-      "setup": "Ensure ~/.config/spdd/config.json already has valid values for all six phases (skip bootstrap), and the target project has no .claude/settings.local.json.",
+      "setup": "Ensure ~/.config/spdd/config.json already has valid values for all six phases in the namespace matching the detected host (`claude.models` under Claude Code) (skip bootstrap), and the target project has no .claude/settings.local.json.",
       "assertions": [
         "canvas.md is written and contains at least one '⚠️ Confirm:' line for the undocumented discount-rule decision",
         ".claude/settings.local.json is not created or modified during the canvas phase",
@@ -188,6 +192,18 @@
         "The response contains a line starting with '[automatic decision]' before the canvas phase is launched",
         "That line reports the Isolated-mode choice and a brief reason (host exposes a subagent mechanism)",
         "No '⚠️ Confirm:' line is used for this mode decision — it is not a blocking question"
+      ]
+    },
+    {
+      "id": 48,
+      "prompt": "usa spdd-agent para ver qué modelo tiene configurado cada fase",
+      "expected_output": "Step 1 detects Claude Code and reads ~/.config/spdd/config.json, but the file's top-level shape matches neither the flat `{\"models\": {...}}` schema nor the nested `{\"claude\": {\"models\": {...}}}` schema (e.g. a hand-edited file with a `claude` key that isn't an object, or a `models` key nested one level too deep). The skill does not treat this as a hard failure or overwrite the file wholesale: per the canvas's Safeguards ('user has already hand-edited the file to something that is neither valid flat nor valid nested shape'), it treats it the same as today's missing/empty-value repair path — re-asking only for the phase values it cannot resolve from the file, via AskUserQuestion, while leaving any other unrelated valid top-level keys in the file untouched.",
+      "setup": "Create ~/.config/spdd/config.json with a top-level shape that is neither valid flat nor valid claude-namespaced JSON for the six phase values (e.g. `{\"claude\": \"sonnet\", \"other_tool\": {\"unrelated\": true}}`), and run with CLAUDECODE=1 so Claude Code is detected.",
+      "assertions": [
+        "The skill does not crash or silently fabricate all six values without asking",
+        "AskUserQuestion is called only for the phase values that cannot be resolved from the malformed file, not for values that happen to already be present and valid",
+        "Unrelated top-level keys already present in the file (e.g. `other_tool`) are still present and unchanged after the run",
+        "After the run, ~/.config/spdd/config.json has a well-formed `claude.models` section with all six phases set to non-empty values"
       ]
     }
   ]
