@@ -6,7 +6,7 @@ compatibility: Works with any agent. Per-phase model selection and subagent isol
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.9"
+  version: "1.11"
 ---
 
 ## Instructions
@@ -44,7 +44,7 @@ Reserve `⚠️ Confirm:` — which blocks and requires a real, foreground `AskU
 Two kinds of input reach this skill:
 
 - **A feature description** ("hay que implementar X", "add support for Y") → proceed to routing (below).
-- **A request about the model configuration itself** ("usa spdd-agent para ver/cambiar el modelo de cada fase", "qué modelo usa implement", "cambia verify a sonnet") → go to Step 1's "Explicit config request" path and stop there; do not start the feature flow.
+- **A request about the model configuration itself** ("usa spdd-agent para ver/cambiar el modelo de cada fase", "qué modelo usa implement", "cambia verify a sonnet") → go to Step 1, which handles viewing and changing values as part of its normal completeness check, and stop there once it reports the result; do not start the feature flow.
 
 **Routing decision** (feature description path only):
 
@@ -80,55 +80,19 @@ Config lives at `~/.config/spdd/config.json` — the XDG user-config convention,
 
 **Detect Claude Code host.** Before deciding which section of the file to read or write, run `Bash`: `echo "$CLAUDECODE"`. If it prints `1`, the host is Claude Code. If it prints anything else, the command errors, or `Bash` is unavailable, treat the host as "not detected" — never guess `claude` on inconclusive evidence, since a wrong guess on a *write* could corrupt the file for whichever host is actually running. Display the transparency line for this decision, per "Decision transparency" above: `[automatic decision] Claude Code detected — using the claude config namespace.` or `[automatic decision] Claude Code not detected — using the flat config shape.`
 
-**Non-Claude-Code hosts** (not detected, including inconclusive): read/write the flat top-level key exactly as before —
+This determines the **applicable section**: `claude.models` under Claude Code, the flat top-level `models` key otherwise.
 
-```json
-{
-  "models": {
-    "canvas": "opus", "design": "opus", "implement": "sonnet",
-    "verify": "opus", "sync": "sonnet", "migrate": "sonnet"
-  }
-}
-```
-(shown with Claude Code aliases as a concrete example — any host's own model identifiers are equally valid here, see below)
+**Completeness check.** Try to read and parse `~/.config/spdd/config.json`:
 
-**Claude Code hosts** (detected): read/write a `claude` namespace instead, wrapping the same `models` shape —
+- If the file doesn't exist → not complete (first-run bootstrap case).
+- If it exists but fails to parse as JSON, or is a zero-byte file → not complete (malformed/unparseable case).
+- If it parses: inspect only the applicable section — the other section (if present) is never inspected or touched. It's **complete** only if that section has all six keys (`canvas`, `design`, `implement`, `verify`, `sync`, `migrate`) present as non-empty strings.
+- If Claude Code is detected and `claude.models` is missing entirely, but a flat top-level `models` key is present and complete → not complete (this is the migration case, not the fast path).
+- If the current request is an **explicit ask to change** one or more phase values (Step 0's config-request path) → not complete, regardless of the checks above. A change always needs the asking mechanics that live in `model-bootstrap.md`, even when the applicable section was already fully valid.
 
-```json
-{
-  "claude": {
-    "models": {
-      "canvas": "opus", "design": "opus", "implement": "sonnet",
-      "verify": "opus", "sync": "sonnet", "migrate": "sonnet"
-    }
-  }
-}
-```
-`claude` is a top-level key sibling to any future host namespace. If a flat top-level `models` key is also present in the file, it is left untouched — read only from `claude`, never merged or deleted.
+**Fast path.** If complete per the check above: read the six values from the applicable section directly. For the ordinary feature flow, proceed straight to Step 2. For an explicit config request that only wants to *view* the current values, report those six values and stop — do not proceed to Step 2. Either way, `spdd-agent/assets/model-bootstrap.md` is never opened and no `AskUserQuestion` call is made.
 
-Only `canvas`, `design`, `implement`, and `verify` are ever used by this skill's own flow (Steps 4–8) — `sync` and `migrate` keep their independent auto-trigger and run standalone, outside this orchestrator.
-
-Each value is a free-text model identifier in whatever form the current host's subagent mechanism accepts — not a fixed enum. On Claude Code that's `opus` / `sonnet` / `haiku` / `fable`; on a host like opencode it's a provider-qualified id (e.g. `anthropic/claude-sonnet-4-5`, `openai/gpt-5`) or whatever string that host's model-override field expects. This skill never validates the string against a host-specific list — it only checks that a value is present and non-empty, and passes it through verbatim to the subagent call in Step 3.
-
-1. If the file doesn't exist: this is first-run bootstrap. Before touching the user's feature request, propose a default model per phase (table below) via `AskUserQuestion`, grouped into 1–2 calls of up to 4 questions each. The choice of options depends on the host's capability, not its identity: if the host's model-override field accepts a small fixed set of named aliases (e.g. Claude Code's `opus`/`sonnet`/`haiku`/`fable`), offer that set as options with the table's suggested tier pre-marked "(Recommended)". If the host instead takes an arbitrary model-identifier string, offer the table's suggested tier as the recommended free-text default and let the user type the exact identifier they want via `AskUserQuestion`'s "Other". Write the confirmed selections to `~/.config/spdd/config.json` (create `~/.config/spdd/` if needed) — under the `claude` namespace if Claude Code was detected above, under the flat top-level `models` key otherwise.
-2. If the file exists: check the applicable section per the detection above (`claude.models` if Claude Code was detected, the flat top-level `models` otherwise) and check each of its six values is a non-empty string. Treat a missing or empty value as absent and re-ask only for that phase (same `AskUserQuestion` mechanism), then write the corrected file back to that same section.
-   - **Migration case:** if Claude Code is detected and the file has a flat top-level `models` key but no `claude` namespace yet, this is a one-time migration, not ordinary repair. Writing it is a side effect — per "Decision transparency" above, propose it via a real foreground `AskUserQuestion` (copy the flat key's six values into a new `claude.models` namespace; leave the flat key untouched) and only write once confirmed. Never perform this write silently, and never delete or modify the original flat key.
-   - If both a flat `models` key and a `claude` namespace are already present, read only from `claude` — never merge or delete the flat key.
-
-| Phase | Suggested tier | Fixed-alias example (Claude Code) |
-|---|---|---|
-| `canvas` | high-reasoning | `opus` |
-| `design` | high-reasoning | `opus` |
-| `implement` | fast/cheap | `sonnet` |
-| `verify` | high-reasoning | `opus` |
-| `sync` | fast/cheap | `sonnet` |
-| `migrate` | fast/cheap | `sonnet` |
-
-Tier rationale: canvas/design/verify favor high-reasoning (ambiguity detection, architectural calls, edge-case/Norms checking); implement/sync/migrate favor fast/cheap (executing an already-validated plan, mechanical spec sync, mechanical layout migration).
-
-The last column is one worked example, not the framework's default — any host with its own fixed alias set (present or future) maps `Suggested tier` to that set the same way.
-
-**Explicit config request** (from Step 0): read the current file (bootstrap first if missing, per above) from the applicable section per the detection above (`claude.models` under Claude Code, the flat top-level `models` otherwise), show the six current values, and if the user asked to change one or more, ask only for those via `AskUserQuestion` with the same host-capability-based options (fixed alias set vs. free text) as bootstrap, then write the file back to that same section. Report the resulting config and stop — do not proceed to Step 3.
+**Everything else:** read [model-bootstrap.md](assets/model-bootstrap.md) and follow the flow documented there for the specific case (first-run bootstrap, repair, migration, malformed/unparseable, or explicit value change) — it owns every `AskUserQuestion` mechanic and every config write for these cases, so nothing here repeats it. Once it finishes: for the ordinary feature flow, proceed to Step 2; for an explicit config request, report the resulting config and stop — do not proceed to Step 2.
 
 ### Step 2 — Detect subagent support
 

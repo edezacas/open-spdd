@@ -54,10 +54,6 @@
 - WHEN `~/.config/spdd/config.json` does not exist yet and the host is detected as Claude Code
 - THEN the bootstrap flow (Step 1.1) writes the new nested `claude` namespace (`{"claude": {"models": {"canvas": ..., "design": ..., "implement": ..., "verify": ..., "sync": ..., "migrate": ...}}}`) instead of the flat top-level `models` key
 
-**Scenario: explicit config view/change request resolves against the detected namespace**
-- WHEN the user asks to view or change the per-phase model configuration ("qué modelo usa implement", "cambia verify a sonnet") while running under Claude Code
-- THEN `spdd-agent` reads and writes the `claude` namespace instead of the flat top-level key, using the same host detection as the rest of this feature
-
 **Scenario: dual-key precedence when both shapes are present**
 - WHEN Claude Code is detected and the config file contains both a flat `models` key and a `claude` namespace (partially migrated, or hand-edited)
 - THEN Step 1 reads only from the `claude` namespace and leaves the flat key untouched — never merges or deletes it automatically
@@ -66,9 +62,37 @@
 - WHEN Step 1's host-detection sub-step cannot confidently determine the host (signal absent, ambiguous, or the detection mechanism itself errors)
 - THEN `spdd-agent` falls back to the flat top-level `models` shape — it never guesses `claude` on uncertain evidence, since guessing wrong on a write would corrupt the file for whichever host is actually running
 
+**Scenario: config already complete for the applicable section (fast path)**
+- WHEN `~/.config/spdd/config.json` exists and the section that applies to the detected host (`claude.models` under Claude Code, flat top-level `models` otherwise) has all six keys (`canvas`, `design`, `implement`, `verify`, `sync`, `migrate`) present as non-empty strings
+- THEN Step 1 reads those six values directly from the config file and proceeds to Step 2 without reading `spdd-agent/assets/model-bootstrap.md` at all — no `AskUserQuestion` call for model selection occurs
+
+**Scenario: config file doesn't exist yet (first-run bootstrap)**
+- WHEN `~/.config/spdd/config.json` doesn't exist
+- THEN Step 1 reads `spdd-agent/assets/model-bootstrap.md` and follows its first-run bootstrap flow (default-tier table, `AskUserQuestion` grouped into 1–2 calls, writing the flat or `claude`-namespaced shape per host detection)
+
+**Scenario: one or more of the six keys is missing or empty (repair case)**
+- WHEN the applicable section exists but at least one of the six keys is missing, empty, or not a string
+- THEN Step 1 reads `spdd-agent/assets/model-bootstrap.md` and follows its repair flow, re-asking via `AskUserQuestion` only for the affected phase(s), leaving the other values untouched
+
+**Scenario: migration case still forces the asset open even if the flat section is complete**
+- WHEN Claude Code is detected, a flat top-level `models` key is present with all six values non-empty, and no `claude` namespace exists yet
+- THEN Step 1 does not take the fast path (completeness alone is not enough — the section that actually applies under Claude Code is `claude.models`, which is absent); it reads `spdd-agent/assets/model-bootstrap.md` and follows the migration flow
+
 **Scenario: config file matches neither valid shape**
-- WHEN the JSON parses but matches neither the flat nor the `claude`-namespaced schema (e.g. hand-edited)
-- THEN `spdd-agent` treats it the same as the missing/empty-value repair path — re-asking only for what's unresolvable via `AskUserQuestion`, without overwriting unrelated valid keys
+- WHEN the JSON parses but matches neither the flat nor the `claude`-namespaced schema for the six phase values
+- THEN Step 1 cannot confirm completeness from the lightweight check alone, so it reads `spdd-agent/assets/model-bootstrap.md` and follows the same repair path documented there — re-asking only for what's unresolvable via `AskUserQuestion`, without overwriting unrelated valid top-level keys
+
+**Scenario: config file is not valid JSON at all (parse failure)**
+- WHEN `~/.config/spdd/config.json` exists but fails to parse as JSON, or is a zero-byte file
+- THEN Step 1 treats this the same as the malformed-shape case (opens `spdd-agent/assets/model-bootstrap.md`, follows its repair flow) rather than silently overwriting the file or treating it as "file doesn't exist" — asks for all six values since nothing can be trusted from an unparseable file, and warns the user the existing file couldn't be parsed before writing over it
+
+**Scenario: explicit config request, read-only, config already complete**
+- WHEN the user asks to view (not change) the current per-phase models and the applicable section is already complete
+- THEN Step 1's completeness check treats this as complete, takes the fast path, and reports the six values directly — `spdd-agent/assets/model-bootstrap.md` is not opened for a pure read of an already-complete config
+
+**Scenario: explicit config request, user wants to change a value**
+- WHEN the user asks to change one or more phase values (regardless of whether the config was already complete)
+- THEN Step 1's completeness check always classifies an explicit change request as "not complete" — even when the applicable section is already fully valid — so it reads `spdd-agent/assets/model-bootstrap.md` for the `AskUserQuestion` mechanics (host-capability-based options) needed to ask only for the phases being changed, then writes back to the applicable section. There is no separate "explicit config request" step in `SKILL.md` — this routes through the same completeness-check/fast-path/asset-read branching as every other case, and the asset owns the only description of the `AskUserQuestion` mechanics involved.
 
 ---
 
@@ -78,8 +102,9 @@
 |------|------|-------|
 | "Routing" section (Step 0) | `spdd-agent/SKILL.md` | Evaluates direct vs. complete route before any other step |
 | Model config | `~/.config/spdd/config.json` | Conditional bootstrap: only triggers if the chosen route is "complete". Since the claude-code-config-namespace feature: flat `{"models": {...}}` by default, or nested `{"claude": {"models": {...}}}` when the host is detected as Claude Code — never both merged |
-| "Load or bootstrap the model configuration" (Step 1) | `spdd-agent/SKILL.md` | Detects the host first, then branches config read/write between the flat top-level `models` key and the `claude`-namespaced `claude.models` key |
-| Config bootstrap/repair evals | `spdd-agent/evals/evals.json` (evals 31–38, 48) | Covers bootstrap, repair, migration, dual-key precedence, and malformed-shape recovery for both the flat and `claude`-namespaced config shapes |
+| "Load or bootstrap the model configuration" (Step 1) | `spdd-agent/SKILL.md` | Detects the host first, then runs a lightweight completeness check against the applicable section (flat top-level `models` or `claude`-namespaced `claude.models`); reads `spdd-agent/assets/model-bootstrap.md` only when that section isn't already complete or a value change was explicitly requested |
+| Model-bootstrap asset | `spdd-agent/assets/model-bootstrap.md` | Holds the first-run bootstrap, repair, migration, malformed/unparseable-config, and explicit-value-change flows plus both JSON shape examples — read conditionally, not always loaded. Sole owner of every `AskUserQuestion` mechanic and config write for these cases; `SKILL.md` only routes to it, never restates its content |
+| Config bootstrap/repair/lazy-load evals | `spdd-agent/evals/evals.json` (evals 31–38, 48, 67–68) | Covers bootstrap, repair, migration, dual-key precedence, malformed-shape recovery, the fast path (67), and parse failure (68), for both the flat and `claude`-namespaced config shapes |
 
 ---
 
@@ -91,12 +116,18 @@
 | Route | Direct route | Implements without a canvas or plan, runs the test suite for the affected area, annotates a summary in `spdd/specs/<domain>.md` only if tests pass |
 | Route | Complete route | canvas → design → implement → verify, unchanged from the pre-existing flow |
 | Output | Transparency line | `Direct route: <reason> → implementing without a canvas.` — shown whenever the direct route is chosen, before executing any change |
-| Step | "Detect Claude Code host" | Sub-step at the start of Step 1, before the existing file-exists check — a `Bash` check of the `CLAUDECODE` env var determines Claude-Code vs. other/inconclusive |
-| Step | "Load or bootstrap the model configuration" (Step 1.1, bootstrap) | Writes to the `claude` namespace when Claude Code is detected, the flat top-level `models` key otherwise |
-| Step | "Load or bootstrap the model configuration" (Step 1.2, existing file) | Reads from the `claude` namespace when detected and present; triggers the migration path (gated behind a real foreground `AskUserQuestion`) when detected but only the flat key is present |
-| Step | "Explicit config request" | Same namespace branch as bootstrap/read, so view/change requests resolve consistently |
+| Step | "Detect Claude Code host" | Sub-step at the start of Step 1, before the completeness check — a `Bash` check of the `CLAUDECODE` env var determines Claude-Code vs. other/inconclusive |
+| Step | "Completeness check" (Step 1) | Reads `~/.config/spdd/config.json` (if present), inspects only the applicable section, and classifies the run as fast-path / first-run bootstrap / repair / migration / malformed-or-unparseable / explicit-change-requested — an explicit request to change a value always classifies as "not complete", even if the section was already valid |
+| Step | "Fast path" (Step 1) | On classification "complete" (and no explicit change requested): reads the six values directly. For the feature flow, proceeds to Step 2; for a read-only explicit config request, reports the values and stops. `spdd-agent/assets/model-bootstrap.md` is never opened, no `AskUserQuestion` call is made |
+| Step | "Open model-bootstrap.md" (Step 1) | On any other classification (including an explicit change request): reads `spdd-agent/assets/model-bootstrap.md` and follows the flow documented there for that specific case — it is the sole owner of every `AskUserQuestion` mechanic and config write for these cases, `SKILL.md` never restates them. Once it finishes: proceeds to Step 2 for the feature flow, or reports the resulting config and stops for an explicit config request |
+| Step | "Load or bootstrap the model configuration" (Step 1.1, bootstrap) | Writes to the `claude` namespace when Claude Code is detected, the flat top-level `models` key otherwise; the `AskUserQuestion` mechanics and default-tier table live only in `spdd-agent/assets/model-bootstrap.md`, read only when the completeness check finds the file missing |
+| Step | "Load or bootstrap the model configuration" (Step 1.2, existing file) | Reads from the `claude` namespace when detected and present; triggers the migration path (gated behind a real foreground `AskUserQuestion`) when detected but only the flat key is present — repair/migration mechanics live only in `spdd-agent/assets/model-bootstrap.md`, read only when the completeness check finds the applicable section incomplete |
 | Config write | `claude` namespace bootstrap | `{"claude": {"models": {"canvas": ..., "design": ..., "implement": ..., "verify": ..., "sync": ..., "migrate": ...}}}` |
 | Config write | Legacy flat fallback | `{"models": {"canvas": ..., ...}}` — unchanged, used whenever Claude Code is not detected |
+| Asset | `spdd-agent/assets/model-bootstrap.md` — First-run bootstrap section | Default-tier table, tier rationale, `AskUserQuestion` mechanics grouped into 1–2 calls, writes flat or `claude`-namespaced shape per host detection |
+| Asset | `spdd-agent/assets/model-bootstrap.md` — Repair section | Re-asks only for missing/empty/malformed phase values via `AskUserQuestion`, writes back to the applicable section only |
+| Asset | `spdd-agent/assets/model-bootstrap.md` — Migration section | Proposes copying the flat `models` six values into a new `claude.models` namespace via a real foreground `AskUserQuestion`; writes only once confirmed; never touches the original flat key |
+| Asset | `spdd-agent/assets/model-bootstrap.md` — JSON shape examples | Both the flat `{"models": {...}}` and `claude`-namespaced `{"claude": {"models": {...}}}` examples |
 
 ---
 

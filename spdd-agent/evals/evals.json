@@ -4,36 +4,39 @@
     {
       "id": 31,
       "prompt": "usa spdd-agent para ver qué modelo tiene configurado cada fase",
-      "expected_output": "The skill classifies this as a config request (Step 0). Step 1 first detects the host (the new 'Detect Claude Code host' sub-step). If Claude Code is detected, it reports the six current phase models from the `claude.models` namespace (bootstrapping into that namespace first if the file doesn't exist yet). If Claude Code is not detected (or detection is inconclusive), it reports them from the flat top-level `models` key instead, exactly as before. Either way it stops — it never starts the feature flow. If the file happens to contain both a flat `models` key and a `claude` namespace, the Claude-Code branch reports only from `claude`, never merging or falling back to the flat key.",
+      "expected_output": "The skill classifies this as a config request (Step 0). Step 1 first detects the host (the new 'Detect Claude Code host' sub-step). If Claude Code is detected, it reports the six current phase models from the `claude.models` namespace (bootstrapping into that namespace first if the file doesn't exist yet). If Claude Code is not detected (or detection is inconclusive), it reports them from the flat top-level `models` key instead, exactly as before. Either way it stops — it never starts the feature flow. If the file happens to contain both a flat `models` key and a `claude` namespace, the Claude-Code branch reports only from `claude`, never merging or falling back to the flat key. Since this is a pure read of an already-complete config, `spdd-agent/assets/model-bootstrap.md` is never opened.",
+      "setup": "Ensure ~/.config/spdd/config.json already has all six phase values complete in the applicable section (`claude.models` under Claude Code, flat `models` otherwise) before running.",
       "assertions": [
         "The response lists a model for all six phases: canvas, design, implement, verify, sync, migrate",
         "The values reported come from the namespace matching the detected host (`claude.models` under Claude Code, flat `models` otherwise) — never a mix of both",
         "No file is created under spdd/changes/",
-        "No canvas/design/implement/verify subagent is launched"
+        "No canvas/design/implement/verify subagent is launched",
+        "spdd-agent/assets/model-bootstrap.md is not read — the fast path serves the values directly from the completeness check"
       ]
     },
     {
       "id": 32,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "On first run with no existing config, Step 1 first detects the host via the new 'Detect Claude Code host' sub-step (the CLAUDECODE env check), then resolves the model for all six phases via AskUserQuestion (grouped into 1-2 calls) before touching the feature request at all. If Claude Code is detected, it writes the nested `{\"claude\":{\"models\":{...}}}` shape. If Claude Code is not detected — including when detection is inconclusive (env var absent, ambiguous, or the check itself errors) — it writes the flat top-level `{\"models\":{...}}` shape exactly as before; a wrong guess would risk corrupting the file for whichever host is actually running, so an inconclusive result always falls back to flat.",
+      "expected_output": "On first run with no existing config, Step 1 first detects the host via the new 'Detect Claude Code host' sub-step (the CLAUDECODE env check), then the completeness check finds the file doesn't exist (first-run bootstrap case) and reads `spdd-agent/assets/model-bootstrap.md`, which is what resolves the model for all six phases via AskUserQuestion (grouped into 1-2 calls) before touching the feature request at all. If Claude Code is detected, it writes the nested `{\"claude\":{\"models\":{...}}}` shape. If Claude Code is not detected — including when detection is inconclusive (env var absent, ambiguous, or the check itself errors) — it writes the flat top-level `{\"models\":{...}}` shape exactly as before; a wrong guess would risk corrupting the file for whichever host is actually running, so an inconclusive result always falls back to flat.",
       "setup": "Ensure ~/.config/spdd/config.json does not exist before running. Exercise this once with Claude Code detected (CLAUDECODE=1) and once with a simulated non-Claude-Code / inconclusive host (CLAUDECODE unset or the detection check simulated as failing).",
       "assertions": [
         "When Claude Code is detected: ~/.config/spdd/config.json exists after the run with a top-level `claude.models` object holding all six phases set to one of opus/sonnet/haiku/fable, and no flat top-level `models` key is created",
         "When Claude Code is not detected or detection is inconclusive: ~/.config/spdd/config.json exists after the run with a flat top-level `models` object holding all six phases, and no `claude` key is created",
         "In both branches, the model selection is resolved via AskUserQuestion before any file is written under spdd/changes/",
-        "In both branches, the canvas phase only starts once the config file exists"
+        "In both branches, the canvas phase only starts once the config file exists",
+        "In both branches, spdd-agent/assets/model-bootstrap.md is read before any AskUserQuestion for model selection, since the completeness check found no config file (first-run bootstrap case)"
       ]
     },
     {
       "id": 33,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "Step 1's existing-file branch first detects the host, then resolves against the matching section. (a) Claude Code detected, `claude.models` already has all six non-empty values: read and proceed, nothing asked. (b) Claude Code detected, one of the six `claude.models` values is missing/empty: only that phase is re-asked via AskUserQuestion (same repair behavior as today's flat config), then written back into `claude.models` — the other five values are untouched. A non-empty free-text identifier (even one that isn't opus/sonnet/haiku/fable) is accepted as-is. (c) Claude Code detected, the file has a flat top-level `models` key but no `claude` namespace: this is the one-time migration path — the skill does not silently read the flat key as if it were Claude-Code-scoped; instead it proposes, via a real foreground AskUserQuestion (writing the file is a side effect), copying the flat key's six values into a new `claude.models` namespace, and only writes once confirmed, leaving the original flat key untouched. (d) Host is not Claude Code: the flat top-level `models` key is read/repaired directly, exactly as before, with no migration proposed and no `claude` key touched.",
+      "expected_output": "Step 1's existing-file branch first detects the host, then runs the completeness check against the matching section. (a) Claude Code detected, `claude.models` already has all six non-empty values: the completeness check finds it complete, takes the fast path, reads and proceeds — nothing asked, `spdd-agent/assets/model-bootstrap.md` is never opened. (b) Claude Code detected, one of the six `claude.models` values is missing/empty: the completeness check finds it incomplete, `spdd-agent/assets/model-bootstrap.md` is read, and only that phase is re-asked via AskUserQuestion (same repair behavior as today's flat config), then written back into `claude.models` — the other five values are untouched. A non-empty free-text identifier (even one that isn't opus/sonnet/haiku/fable) is accepted as-is. (c) Claude Code detected, the file has a flat top-level `models` key but no `claude` namespace: the completeness check classifies this as the migration case (not complete, since `claude.models` itself is absent), `spdd-agent/assets/model-bootstrap.md` is read, and the skill does not silently read the flat key as if it were Claude-Code-scoped; instead it proposes, via a real foreground AskUserQuestion (writing the file is a side effect), copying the flat key's six values into a new `claude.models` namespace, and only writes once confirmed, leaving the original flat key untouched. (d) Host is not Claude Code: the flat top-level `models` key is read/repaired directly, exactly as before, with no migration proposed and no `claude` key touched — `spdd-agent/assets/model-bootstrap.md` is read only if that flat section itself is incomplete.",
       "setup": "Prepare four config-file variants and run once against each: (a) `claude.models` complete, Claude Code detected; (b) `claude.models` with one empty/missing phase (e.g. canvas), Claude Code detected; (c) flat `models` complete but no `claude` key, Claude Code detected; (d) flat `models` complete, non-Claude-Code host detected.",
       "assertions": [
-        "(a) No AskUserQuestion is called; the six values used for Steps 4-8 match `claude.models` exactly",
-        "(b) AskUserQuestion is called only for the phase with the empty/missing value in `claude.models`; the other five values and the top-level structure are unchanged after the run",
-        "(c) The skill does not read the flat `models` key as Claude-Code-scoped without asking first; AskUserQuestion is called before any write; after confirmation, `claude.models` exists with the flat key's six values copied over, and the original flat `models` key is still present and byte-for-byte unchanged",
-        "(d) The flat `models` key is read/repaired directly, no AskUserQuestion about migration is raised, and no `claude` key is created",
+        "(a) No AskUserQuestion is called; the six values used for Steps 4-8 match `claude.models` exactly; spdd-agent/assets/model-bootstrap.md is not read (fast path)",
+        "(b) AskUserQuestion is called only for the phase with the empty/missing value in `claude.models`; the other five values and the top-level structure are unchanged after the run; spdd-agent/assets/model-bootstrap.md is read before that AskUserQuestion call",
+        "(c) The skill does not read the flat `models` key as Claude-Code-scoped without asking first; spdd-agent/assets/model-bootstrap.md is read (migration case); AskUserQuestion is called before any write; after confirmation, `claude.models` exists with the flat key's six values copied over, and the original flat `models` key is still present and byte-for-byte unchanged",
+        "(d) The flat `models` key is read/repaired directly (complete in this variant, so spdd-agent/assets/model-bootstrap.md is not read), no AskUserQuestion about migration is raised, and no `claude` key is created",
         "If a config file has both a flat `models` key and a `claude` namespace already present (partially migrated or hand-edited) and Claude Code is detected, the values used come only from `claude` — the flat key is never merged, read as a fallback, or deleted"
       ]
     },
@@ -45,7 +48,8 @@
       "assertions": [
         "canvas.md is written and contains at least one '⚠️ Confirm:' line for the undocumented discount-rule decision",
         ".claude/settings.local.json is not created or modified during the canvas phase",
-        "canvas.md contains a '⚠️ Confirm:' line noting the SPDD hook was not installed"
+        "canvas.md contains a '⚠️ Confirm:' line noting the SPDD hook was not installed",
+        "spdd-agent/assets/model-bootstrap.md is not read during Step 1, since the applicable section is already complete per the setup (fast path)"
       ]
     },
     {
@@ -56,39 +60,43 @@
       "assertions": [
         "The design phase is not launched while any '⚠️ Confirm:' line remains in canvas.md",
         "Every '⚠️ Confirm:' line present is asked about via AskUserQuestion — none is silently defaulted or dropped",
-        "canvas.md has 'Status: Confirmed' and zero '⚠️ Confirm:' lines before the design phase begins"
+        "canvas.md has 'Status: Confirmed' and zero '⚠️ Confirm:' lines before the design phase begins",
+        "spdd-agent/assets/model-bootstrap.md is not read during Step 1, since the applicable section is already complete per the setup (fast path)"
       ]
     },
     {
       "id": 36,
       "prompt": "hay que implementar [feature with two parts, where part B needs a field/entity only introduced by part A]",
       "expected_output": "The design phase produces plan-01 and plan-02 with plan-02 declaring 'Depends on: plan-01'. The skill launches plan-01's implement phase first, waits for it to reach 'Status: Implemented', and only then launches plan-02's implement phase.",
-      "setup": "Run through canvas and design so that plan-02 legitimately depends on plan-01 (mirrors spdd-design eval 13's setup).",
+      "setup": "Run through canvas and design so that plan-02 legitimately depends on plan-01 (mirrors spdd-design eval 13's setup). Ensure ~/.config/spdd/config.json already has valid values for all six phases in the applicable section before running, so Step 1 takes the fast path.",
       "assertions": [
         "plan-01 reaches 'Status: Implemented' before plan-02's implement phase is launched",
-        "plan-02's implement phase is never launched while plan-01 is not yet 'Status: Implemented'"
+        "plan-02's implement phase is never launched while plan-01 is not yet 'Status: Implemented'",
+        "spdd-agent/assets/model-bootstrap.md is not read during Step 1, since the applicable section is already complete per the setup (fast path)"
       ]
     },
     {
       "id": 37,
       "prompt": "hay que implementar [a feature already carried through canvas, design, and implement, where the implementation ends up diverging non-trivially from the plan]",
       "expected_output": "When the verify phase reports a non-trivial divergence between the plan and the actual code, the skill brings it to the user via a real foreground AskUserQuestion instead of silently forcing 'Status: Verified' or archiving the change.",
-      "setup": "Same style of setup as spdd-implement eval 6: implement a plan, then introduce a discrepancy between the plan/canvas and the real code before the verify phase runs.",
+      "setup": "Same style of setup as spdd-implement eval 6: implement a plan, then introduce a discrepancy between the plan/canvas and the real code before the verify phase runs. Ensure ~/.config/spdd/config.json already has valid values for all six phases in the applicable section before running, so Step 1 takes the fast path.",
       "assertions": [
         "The plan/canvas is not marked 'Status: Verified' while the divergence is unresolved",
         "Nothing is folded into spdd/specs/ or moved to spdd/archive/ while the divergence is open",
-        "The user is asked via AskUserQuestion how to resolve the divergence before verification concludes"
+        "The user is asked via AskUserQuestion how to resolve the divergence before verification concludes",
+        "spdd-agent/assets/model-bootstrap.md is not read during Step 1, since the applicable section is already complete per the setup (fast path)"
       ]
     },
     {
       "id": 38,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
       "expected_output": "On a host with no subagent-launching mechanism available, the skill runs each phase by invoking the phase skill directly in its own context (inline mode) instead of launching an isolated subagent. Orchestration and the checkpoint gate stay the same; only isolation and per-phase model selection are lost.",
-      "setup": "Simulate a host with no mechanism to launch an isolated subagent with a model override.",
+      "setup": "Simulate a host with no mechanism to launch an isolated subagent with a model override. Ensure ~/.config/spdd/config.json already has valid values for all six phases in the applicable section before running, so Step 1 takes the fast path.",
       "assertions": [
         "Each phase still produces the same artifacts as isolated mode (canvas.md, plans/*.md, code changes)",
         "No subagent/background launch is invoked for any phase",
-        "The checkpoint gate on '⚠️ Confirm:' lines still applies before advancing between phases"
+        "The checkpoint gate on '⚠️ Confirm:' lines still applies before advancing between phases",
+        "spdd-agent/assets/model-bootstrap.md is not read during Step 1, since the applicable section is already complete per the setup (fast path)"
       ]
     },
     {
@@ -197,13 +205,39 @@
     {
       "id": 48,
       "prompt": "usa spdd-agent para ver qué modelo tiene configurado cada fase",
-      "expected_output": "Step 1 detects Claude Code and reads ~/.config/spdd/config.json, but the file's top-level shape matches neither the flat `{\"models\": {...}}` schema nor the nested `{\"claude\": {\"models\": {...}}}` schema (e.g. a hand-edited file with a `claude` key that isn't an object, or a `models` key nested one level too deep). The skill does not treat this as a hard failure or overwrite the file wholesale: per the canvas's Safeguards ('user has already hand-edited the file to something that is neither valid flat nor valid nested shape'), it treats it the same as today's missing/empty-value repair path — re-asking only for the phase values it cannot resolve from the file, via AskUserQuestion, while leaving any other unrelated valid top-level keys in the file untouched.",
+      "expected_output": "Step 1 detects Claude Code and reads ~/.config/spdd/config.json, but the file's top-level shape matches neither the flat `{\"models\": {...}}` schema nor the nested `{\"claude\": {\"models\": {...}}}` schema (e.g. a hand-edited file with a `claude` key that isn't an object, or a `models` key nested one level too deep). The lightweight completeness check cannot confirm the applicable section is complete from this shape, so it classifies the run as malformed and reads `spdd-agent/assets/model-bootstrap.md`. The skill does not treat this as a hard failure or overwrite the file wholesale: per the canvas's Safeguards ('user has already hand-edited the file to something that is neither valid flat nor valid nested shape'), it treats it the same as today's missing/empty-value repair path — re-asking only for the phase values it cannot resolve from the file, via AskUserQuestion, while leaving any other unrelated valid top-level keys in the file untouched.",
       "setup": "Create ~/.config/spdd/config.json with a top-level shape that is neither valid flat nor valid claude-namespaced JSON for the six phase values (e.g. `{\"claude\": \"sonnet\", \"other_tool\": {\"unrelated\": true}}`), and run with CLAUDECODE=1 so Claude Code is detected.",
       "assertions": [
         "The skill does not crash or silently fabricate all six values without asking",
+        "spdd-agent/assets/model-bootstrap.md is read before any AskUserQuestion call, since the completeness check cannot confirm the malformed section is complete",
         "AskUserQuestion is called only for the phase values that cannot be resolved from the malformed file, not for values that happen to already be present and valid",
         "Unrelated top-level keys already present in the file (e.g. `other_tool`) are still present and unchanged after the run",
         "After the run, ~/.config/spdd/config.json has a well-formed `claude.models` section with all six phases set to non-empty values"
+      ]
+    },
+    {
+      "id": 67,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "On an ordinary run where ~/.config/spdd/config.json already has the applicable section (`claude.models` under Claude Code, flat `models` otherwise) complete with all six non-empty string values, Step 1's completeness check classifies the run as the fast path: it reads the six values directly and proceeds to Step 2 without ever opening `spdd-agent/assets/model-bootstrap.md` and without any `AskUserQuestion` call for model selection.",
+      "setup": "Ensure ~/.config/spdd/config.json exists with the applicable section already complete (all six of canvas/design/implement/verify/sync/migrate present as non-empty strings) before running.",
+      "assertions": [
+        "spdd-agent/assets/model-bootstrap.md is not read at any point during this run",
+        "No AskUserQuestion call for model selection occurs",
+        "The six values used for Steps 4-8 match the values already present in the applicable section, unchanged",
+        "The canvas phase is launched without any delay for model configuration"
+      ]
+    },
+    {
+      "id": 68,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "~/.config/spdd/config.json exists but is not valid JSON (or is a zero-byte file). Step 1's completeness check cannot parse it, so it cannot confirm the applicable section is complete — this is treated the same as the malformed-shape case, not as 'file doesn't exist' and not silently overwritten. The skill reads `spdd-agent/assets/model-bootstrap.md`, warns the user that the existing file couldn't be parsed, and asks for all six values via AskUserQuestion (since nothing in the file can be trusted) before writing over it.",
+      "setup": "Create ~/.config/spdd/config.json containing invalid JSON (e.g. truncated or syntactically broken content), or as a zero-byte empty file. Exercise both variants.",
+      "assertions": [
+        "The skill does not crash and does not silently treat the file as absent",
+        "spdd-agent/assets/model-bootstrap.md is read before any AskUserQuestion call",
+        "The user is warned that the existing config file could not be parsed, before it is overwritten",
+        "AskUserQuestion is called for all six phase values, since nothing in the unparseable file can be trusted",
+        "After the run, ~/.config/spdd/config.json is valid JSON with the applicable section holding all six phases as non-empty strings"
       ]
     }
   ]
