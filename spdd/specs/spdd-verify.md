@@ -55,6 +55,14 @@ a passing test can't hide a silent divergence between what was agreed and what w
 - No static code analysis is introduced (linters, AST, etc.) — the diff-vs-canvas comparison relies on the agent's own reasoning when reading the diff, the same way `spdd-canvas` already does to generate the canvas.
 - The pre-existing Step 3 (Structural check) doesn't change — the new Step 7 complements it using the real git diff instead of just reading declared paths.
 
+**Scenario: change lookup is self-contained (v2.0 trim)**
+- WHEN `spdd-verify` Step 1 locates a change without an argument
+- THEN it lists `spdd/changes/` entries matching `SPDD-*` (most recent first) inline, without referencing `spdd-implement` Step 1
+
+**Scenario: hook-presence check in one sentence (v2.0 trim)**
+- WHEN `spdd-verify` Step 9 runs on Claude Code
+- THEN the step checks `.claude/settings.local.json` for `SPDD` and `"subagentPromptCacheTtl"` in one sentence and reads `assets/hook-setup.md` only when something is missing
+
 ---
 
 ## Entities
@@ -72,7 +80,7 @@ a passing test can't hide a silent divergence between what was agreed and what w
 |------|-----------|-------------|
 | Step | "Diff-to-canvas check" (Step 7, between Step 6 "Mark status" and Step 8 "Fold back and archive") | Gets the real diff of the files modified in this implementation (`git diff` for uncommitted changes; `git log -p`/`git log --stat` over the paths declared in Structure/Shared touchpoints of the plan/canvas if already committed) and compares it point by point against the Operations and Norms of the canvas/plan being verified |
 | Branch | Eval-suite check (Step 4, end) | If scope includes its own eval suite (e.g. a `SKILL.md` with `evals/evals.json`): run it, or (foreground) ask via `AskUserQuestion` whether a lighter diff-based check suffices; (background) run the suite if non-trivial, else leave `⚠️ Confirm:` — never silently diff-equivalent |
-| Step | "Ensure the SPDD hook and subagent cache TTL" (Step 9, Claude Code only) | Lazy-loaded since v1.8: inline grep check against `.claude/settings.local.json`; asks before any write; merges from the skill's own `assets/hook-setup.md` only when something is missing |
+| Step | "Ensure the SPDD hook and subagent cache TTL" (Step 9, Claude Code only) | Lazy-loaded since v1.8: one-sentence presence check (v2.0 trim) against `.claude/settings.local.json`; asks before any write; merges from the skill's own `assets/hook-setup.md` only when something is missing |
 | Check | Operations coverage | Every Operation in the canvas/plan must have corresponding code in the diff; if any is missing, it's a blocking discrepancy |
 | Check | Diff scope | No file/module touched in the diff may fall outside Structure, Shared touchpoints, or Operations of the canvas/plan; if it does, it's a blocking discrepancy — except test files that `spdd-verify`'s own Step 4 created during this same verification, which are exempt from the check since they're an expected byproduct of verification, not of the original implementation diff |
 | Gate | Discrepancy in a session with a live turn (foreground) | Uses `AskUserQuestion` to ask the human whether the discrepancy is intentional; if confirmed, continues to the fold, annotating the accepted discrepancy; if not confirmed or answered without clarity, stops the process without folding |
@@ -86,7 +94,7 @@ a passing test can't hide a silent divergence between what was agreed and what w
 
 - Simplicity First: the Diff-to-canvas check introduces no static analysis or external tools — only diff reading and the agent's own reasoning.
 - The Diff-to-canvas check (Step 7) complements Step 3 (Structural check) without duplicating it: Step 3 still checks declared-path coverage; Step 7 uses the real git diff as objective evidence.
-- Increment `metadata.version` in `spdd-verify/SKILL.md` on any edit to its instructions (currently at 1.9, cumulative across changes).
+- Increment `metadata.version` in `spdd-verify/SKILL.md` on any edit to its instructions (currently at 2.0, cumulative across changes).
 - Never fold into `spdd/specs/<domain>.md` while an unresolved discrepancy exists — neither in foreground without explicit confirmation, nor in background under `spdd-agent`.
 - New prose `spdd-verify` writes during the Diff-to-canvas check (Step 7) or the fold-to-spec step (Step 8) must be in English, regardless of the conversation's language.
 - "Non-trivial" (for the background default on the eval-harness branch) means anything beyond a single-sentence/single-line prose edit with no new decision logic, branch, or exact string added/removed.

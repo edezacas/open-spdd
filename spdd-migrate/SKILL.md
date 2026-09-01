@@ -6,10 +6,12 @@ compatibility: Works with any agent. Step 5 (hook rewrite) requires Claude Code.
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.0"
+  version: "2.1"
 ---
 
 ## Instructions
+
+> **Language note:** All newly authored content in this skill (reformatted Acceptance Criteria/Safeguards, spec sections, `⚠️ Confirm:` lines) is written in English, regardless of the conversation's language.
 
 ### Step 1 — Detect the old layout
 
@@ -24,12 +26,9 @@ For each `docs/prompts/SPDD-*.md` file found:
 3. **Idempotency check**: if `spdd/changes/SPDD-<same-slug>/canvas.md` or `spdd/archive/SPDD-<same-slug>/canvas.md` already exists, skip this file and note it as already migrated.
 4. Reformat Acceptance Criteria and Safeguards edge cases from freeform checkboxes/bullets into `WHEN/THEN` scenarios, preserving the original meaning as closely as possible. If a rewrite is ambiguous, add `⚠️ Confirm:` asking the user to double-check the rewrite didn't change the intent — never guess silently.
 
-   > **Language note:** Write the reformatted Acceptance Criteria/Safeguards content in English, regardless of the conversation's language.
 5. **Route the migrated canvas:**
    - **Closed** (`Status: Implemented`, or a paired `docs/features/<slug>.md` exists): write to `spdd/archive/SPDD-<same-date-slug>/canvas.md` with `Status: Verified` — preserve the original `> Implemented: YYYY-MM-DD` line if the source canvas already had one. This mirrors `spdd-verify`'s own invariant: only `Verified` material lives in `spdd/archive/`.
    - **Still active** (`Draft` or `Confirmed`, no paired feature doc): write to `spdd/changes/SPDD-<same-date-slug>/canvas.md`, **keeping the original `Status` exactly as it was**. Do not fold it into `spdd/specs/` — that happens when the user later runs `spdd-verify` on it, same as any other feature.
-6. Do not delete the original file in this step — migration is non-destructive by default.
-
 ### Step 3 — Fold closed feature docs into the living spec
 
 For every `docs/features/<slug>.md`:
@@ -51,8 +50,6 @@ For every `docs/features/<slug>.md`:
    - **Norms**: business rules that read as fixed constraints or conventions.
    - Before appending to Entities, Operations, or Norms, check whether a row with the same name/identifier already exists in that section of `spdd/specs/<domain>.md`; update in place instead of duplicating.
 4. Create `spdd/specs/<domain>.md` if it doesn't exist yet, and add the `<!-- spdd-migrate source: docs/features/<slug>.md -->` marker next to what was folded in.
-
-   > **Language note:** Write all newly authored prose in this step (spec sections, `⚠️ Confirm:` lines) in English, regardless of the conversation's language.
 
 ### Step 4 — Leave the originals in place
 

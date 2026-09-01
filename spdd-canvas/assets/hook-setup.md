@@ -14,4 +14,4 @@ Merge the applicable piece(s) into `.claude/settings.local.json` and write it ba
     ]
   }
   ```
-- **Subagent cache TTL** — top-level (not under `hooks`): `"subagentPromptCacheTtl": "1h"`. Set this so that `spdd-implement` and `spdd-verify` — which can run several turns inside one subagent call — keep their prompt cache alive; without the TTL setting, Claude Code caps it at 5 minutes regardless of plan.
+- **Subagent cache TTL** — top-level (not under `hooks`): `"subagentPromptCacheTtl": "1h"`. This phase can run several turns inside one subagent call; without the TTL setting, Claude Code caps its prompt cache at 5 minutes regardless of plan.

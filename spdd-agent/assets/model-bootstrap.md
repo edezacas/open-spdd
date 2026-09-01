@@ -1,11 +1,6 @@
 # Model bootstrap, repair, and migration instructions
 
-Read this file only when `spdd-agent`'s Step 1 completeness check does *not* find the applicable
-section (`claude.models` under Claude Code, flat top-level `models` otherwise) already complete.
-It documents every non-fast-path branch — first-run bootstrap, repair, migration, and
-malformed/unparseable config — plus the JSON shape examples and the explicit-config-request
-"change" flow. The fast path itself (config already complete) is handled inline in `SKILL.md`
-without ever opening this file.
+Opened only by `spdd-agent` Step 1, and only when the applicable config section (`claude.models` under Claude Code, flat top-level `models` otherwise) is not already complete or a value change was explicitly requested. It documents every non-fast-path branch — first-run bootstrap, repair, migration, malformed/unparseable config, and the explicit-config-request "change" flow — plus the JSON shape examples; the fast path is handled inline in `SKILL.md` without ever opening this file.
 
 ## JSON shapes
 
@@ -19,8 +14,6 @@ Non-Claude-Code hosts read/write the flat top-level key exactly as before:
   }
 }
 ```
-(shown with Claude Code aliases as a concrete example — any host's own model identifiers are equally valid here, see below)
-
 Claude Code hosts read/write a `claude` namespace instead, wrapping the same `models` shape:
 
 ```json
@@ -33,7 +26,7 @@ Claude Code hosts read/write a `claude` namespace instead, wrapping the same `mo
   }
 }
 ```
-`claude` is a top-level key sibling to any future host namespace. If a flat top-level `models` key is also present in the file, it is left untouched — read only from `claude`, never merged or deleted.
+`claude` is a top-level key sibling to any future host namespace.
 
 Only `canvas`, `design`, `implement`, and `verify` are ever used by `spdd-agent`'s own flow (Steps 4–8) — `sync` and `migrate` keep their independent auto-trigger and run standalone, outside this orchestrator.
 

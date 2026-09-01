@@ -5,14 +5,14 @@ license: Apache-2.0
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.4"
+  version: "1.5"
 ---
 
 ## Instructions
 
 ### Step 1 — Locate the canvas
 
-If a change folder or canvas path was provided, use that. Otherwise, list recent changes in `spdd/changes/` matching `SPDD-*`, sorted by name (most recent first), same lookup pattern as `spdd-implement` Step 1.
+If a change folder or canvas path was provided, use that. Otherwise, list the directories in `spdd/changes/` matching `SPDD-*`, sorted by name (most recent first).
 
 If empty, stop and tell the user to run `spdd-canvas` first. If multiple exist and no argument was given, ask which one to use.
 
@@ -47,8 +47,7 @@ For each group (or the single plan), fill the template read in Step 6 and write 
 
 - The subset of Operations that belong to this plan.
 - The Entities and Structure paths this plan owns.
-- `Depends on:` — the ids of other plans this one requires to be done first, or `none`. Never assume independence without checking; if a dependency is genuinely uncertain, write `⚠️ Confirm:` next to it instead of guessing.
-- `Shared touchpoints:` — any file that this plan and at least one other plan both need to touch (e.g. a central router, a providers registry). List it even if the rest of the plan is fully independent, so whoever implements it knows a conflict is possible there.
+- `Depends on:` and `Shared touchpoints:` — fill per the template's guidance (read in Step 6).
 
 Do not duplicate Requirements, Norms, or Safeguards in each plan — those stay in the parent `canvas.md` and `spdd-implement` reads both.
 

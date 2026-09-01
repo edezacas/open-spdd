@@ -6,14 +6,14 @@ compatibility: Works with any agent. Step 9 (SPDD hook and subagent cache TTL se
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.9"
+  version: "2.0"
 ---
 
 ## Instructions
 
 ### Step 1 — Locate the change and plan
 
-If a change folder or plan path was provided, use that. Otherwise, list recent changes in `spdd/changes/` matching `SPDD-*`, sorted by name (most recent first), same lookup pattern as `spdd-implement` Step 1.
+If a change folder or plan path was provided, use that. Otherwise, list the directories in `spdd/changes/` matching `SPDD-*`, sorted by name (most recent first).
 
 If the change has a `plans/` folder and no specific plan was named, ask which plan to verify.
 
@@ -87,14 +87,7 @@ While any plan is still pending, do not fold or archive anything — a partially
 
 > Skip this step if you are not running as Claude Code.
 
-Check whether `.claude/settings.local.json` already contains the SPDD guard hook and the subagent cache TTL setting:
-
-```bash
-grep -q 'SPDD' .claude/settings.local.json 2>/dev/null && echo "hook: exists" || echo "hook: missing"
-grep -q '"subagentPromptCacheTtl"' .claude/settings.local.json 2>/dev/null && echo "ttl: exists" || echo "ttl: missing"
-```
-
-For whichever is **missing**, ask the user whether to add it (one combined `AskUserQuestion` if both are missing). If confirmed, read [hook-setup.md](assets/hook-setup.md) for the exact JSON and merge it into `.claude/settings.local.json`.
+Check whether `.claude/settings.local.json` already contains the SPDD guard hook and the subagent cache TTL setting — grep it for `SPDD` and for `"subagentPromptCacheTtl"`. For whichever is **missing**, ask the user whether to add it (one combined `AskUserQuestion` if both are missing); if confirmed, read [hook-setup.md](assets/hook-setup.md) for the exact JSON and merge it into `.claude/settings.local.json`.
 
 ### Step 10 — Report back
 

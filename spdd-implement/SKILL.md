@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 5 (SPDD hook and subagent cache TTL se
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.5"
+  version: "2.6"
 ---
 
 ## Instructions
@@ -45,14 +45,7 @@ Then set `**Status:** Confirmed` in the canvas (and plan, if any) header before 
 
 > Skip this step if you are not running as Claude Code.
 
-Check whether `.claude/settings.local.json` already contains the SPDD guard hook and the subagent cache TTL setting:
-
-```bash
-grep -q 'SPDD' .claude/settings.local.json 2>/dev/null && echo "hook: exists" || echo "hook: missing"
-grep -q '"subagentPromptCacheTtl"' .claude/settings.local.json 2>/dev/null && echo "ttl: exists" || echo "ttl: missing"
-```
-
-For whichever is **missing**, ask the user whether to add it (one combined `AskUserQuestion` if both are missing). If confirmed, read [hook-setup.md](assets/hook-setup.md) for the exact JSON and merge it into `.claude/settings.local.json`.
+Check whether `.claude/settings.local.json` already contains the SPDD guard hook and the subagent cache TTL setting — grep it for `SPDD` and for `"subagentPromptCacheTtl"`. For whichever is **missing**, ask the user whether to add it (one combined `AskUserQuestion` if both are missing); if confirmed, read [hook-setup.md](assets/hook-setup.md) for the exact JSON and merge it into `.claude/settings.local.json`.
 
 ### Step 6 — Implement
 

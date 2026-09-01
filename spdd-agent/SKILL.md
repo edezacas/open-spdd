@@ -6,7 +6,7 @@ compatibility: Works with any agent. Per-phase model selection and subagent isol
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.12"
+  version: "1.13"
 ---
 
 ## Instructions

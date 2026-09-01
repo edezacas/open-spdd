@@ -61,6 +61,16 @@ downstream tasks reading these documents as context spend fewer reasoning tokens
 - THEN the default is a single unified canvas, with a `⚠️ Confirm: layers` line for the
   orchestrator's checkpoint (v2.9)
 
+**Scenario: hook-presence check in one sentence (v2.10 trim)**
+- WHEN `spdd-canvas` Step 9 runs on Claude Code
+- THEN the step checks `.claude/settings.local.json` for `SPDD` and `"subagentPromptCacheTtl"` in
+  one sentence and reads `assets/hook-setup.md` only when something is missing
+
+**Scenario: Step 10 suggests the next step without explaining other skills (v2.10 trim)**
+- WHEN `spdd-canvas` reports back
+- THEN it suggests `/spdd-design` without restating `spdd-implement`'s
+  never-implements-from-canvas rule (owned by `spdd-implement`'s frontmatter and Step 1)
+
 ---
 
 ## Entities
@@ -70,7 +80,7 @@ downstream tasks reading these documents as context spend fewer reasoning tokens
 | `> Language: ...` note | `spdd-canvas/assets/template-reasons.md` (line 5) | Single authoritative English-language instruction since v2.9 — the former "Output language" step (Step 3) was a redundant duplicate and was deleted |
 | Step "Context: freshness, spec, norms, and risk" (Step 5) | `spdd-canvas/SKILL.md` | Merged in v2.9 from the former freshness + context steps: infers the domain, runs the freshness check (foreground ask / background default), reads the living spec (`general.md` fallback), reads `spdd/norms.md`, identifies risk |
 | Step "Determine layers" (Step 6) | `spdd-canvas/SKILL.md` | Asks one-canvas-vs-per-layer only for two-concern descriptions; background default since v2.9: single unified canvas + `⚠️ Confirm` |
-| Step "Ensure the SPDD hook and subagent cache TTL" (Step 9) | `spdd-canvas/SKILL.md` + `assets/hook-setup.md` | Claude Code only; lazy-loaded since v2.8 — inline grep check, asset read only when the hook or TTL is missing (renumbered from Step 11 in v2.9) |
+| Step "Ensure the SPDD hook and subagent cache TTL" (Step 9) | `spdd-canvas/SKILL.md` + `assets/hook-setup.md` | Claude Code only; lazy-loaded since v2.8 — one-sentence presence check (v2.10 trim), asset read only when the hook or TTL is missing (renumbered from Step 11 in v2.9) |
 
 ---
 
@@ -81,7 +91,7 @@ downstream tasks reading these documents as context spend fewer reasoning tokens
 | Step | "Context: freshness, spec, norms, and risk" (Step 5, merges former Steps 6+7) | Infer domain from folder conventions → freshness check (foreground: stop and ask spdd-sync-vs-continue; background: continue + `⚠️ Confirm: spec stale`) → read living spec (`general.md` fallback) → read `spdd/norms.md` (carry-over, attributed) → identify risk and ambiguity |
 | Step | "Determine layers" (Step 6) | One-canvas-vs-per-layer question only for two-concern descriptions; background default: single unified canvas + `⚠️ Confirm` |
 | Template note | `> Language: ...` in `template-reasons.md` | Explicitly declares the document is written in English — single authoritative language instruction since v2.9 |
-| Step | "Ensure the SPDD hook and subagent cache TTL" (Step 9, Claude Code only) | Inline grep check against `.claude/settings.local.json`; asks before any write; merges from `assets/hook-setup.md` only when something is missing |
+| Step | "Ensure the SPDD hook and subagent cache TTL" (Step 9, Claude Code only) | One-sentence presence check (grep `SPDD` and `"subagentPromptCacheTtl"`) against `.claude/settings.local.json`; asks before any write; merges from `assets/hook-setup.md` only when something is missing |
 | Boundary | Persisted document vs. conversational reply | The English-only rule applies only to `canvas.md` content; conversational replies to the user in chat still follow the conversation's language rules (e.g. the user's global `CLAUDE.md` instructions) |
 
 ---
@@ -89,7 +99,7 @@ downstream tasks reading these documents as context spend fewer reasoning tokens
 ## Norms
 
 - Simplicity First: the language rule is a fixed, unconditional instruction — no conditional logic or per-project configuration, no opt-out via `spdd/norms.md`.
-- Increment `metadata.version` of `spdd-canvas/SKILL.md` whenever its instructions are edited (currently at 2.9, cumulative across changes).
+- Increment `metadata.version` of `spdd-canvas/SKILL.md` whenever its instructions are edited (currently at 2.10, cumulative across changes).
 - Do not translate historical content already written in another language (e.g. archived canvases generated before this change) — the rule is forward-only.
 - Test coverage: `spdd-canvas/evals/evals.json` cases 52–53 (English output from a Spanish description) and 54 (background freshness default) verify this spec's scenarios.
 - Every foreground ask in this skill names a never-block default for background runs (freshness: continue + `⚠️ Confirm: spec stale`; layers: single unified canvas + `⚠️ Confirm`) — a background subagent must never block on a step that only names an ask (v2.9).

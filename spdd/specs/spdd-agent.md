@@ -106,6 +106,10 @@
 - WHEN `spdd-agent` delegates the canvas phase after deciding the complete route
 - THEN the subagent prompt states that routing was already decided, so `spdd-canvas` Step 2 (applicability guard) is skipped — the user is never re-asked for the canvas they already requested via the orchestrator
 
+**Scenario: model-bootstrap opens lean (v1.13 trim)**
+- WHEN `spdd-agent/assets/model-bootstrap.md` is read
+- THEN it opens with a ≤2-sentence scope note, states flat-key immutability once (migration section), and keeps both JSON shape examples and every `AskUserQuestion` mechanic intact
+
 ---
 
 ## Entities
@@ -150,6 +154,6 @@
 
 - When in doubt between direct and complete route, ALWAYS choose the complete route.
 - Do not add automatic verification that the chosen route was "the correct one".
-- Increment `metadata.version` in `spdd-agent/SKILL.md` on any edit to its instructions (currently at 1.12, cumulative across changes).
+- Increment `metadata.version` in `spdd-agent/SKILL.md` on any edit to its instructions (currently at 1.13, cumulative across changes).
 - The never-block rule quoted verbatim in Step 3 is an exact string — edits elsewhere in the file (including meta-section compression) must never alter it (verified byte-identical after the v1.12 compression).
 - Mirror any Structure/Conventions/Gotchas edit into both `CLAUDE.md` and `AGENTS.md`.
