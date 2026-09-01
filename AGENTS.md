@@ -22,7 +22,7 @@ Structured Prompt-Driven Development (SPDD) skills. Each skill is a directory wi
 ```
 spdd-agent/SKILL.md                   # orchestrates canvas → design → implement → verify from one feature description
 spdd-agent/assets/model-bootstrap.md  # first-run/repair/migration/malformed model-config flows + JSON shape examples, read only when Step 1's completeness check finds the applicable section incomplete
-spdd-agent/evals/evals.json           # evals 31–38, 48, 67–68: config request, bootstrap, invalid-config repair, never-block rule, checkpoint gate, dependency order, divergence reopen, inline fallback, malformed shape, fast path, parse failure
+spdd-agent/evals/evals.json           # evals 31–48, 67–72: routing, config request, bootstrap, invalid-config repair, never-block rule, checkpoint gate, dependency order, divergence reopen, inline fallback, isolated-without-model-override, malformed shape, fast path, parse failure
 spdd-canvas/SKILL.md                  # REASONS canvas generator — /spdd-canvas
 spdd-canvas/assets/template-reasons.md
 spdd-canvas/assets/template-norms.md  # starting template for a target project's spdd/norms.md

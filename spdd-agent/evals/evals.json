@@ -91,7 +91,7 @@
       "id": 38,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
       "expected_output": "On a host with no subagent-launching mechanism available, the skill runs each phase by invoking the phase skill directly in its own context (inline mode) instead of launching an isolated subagent. Orchestration and the checkpoint gate stay the same; only isolation and per-phase model selection are lost.",
-      "setup": "Simulate a host with no mechanism to launch an isolated subagent with a model override. Ensure ~/.config/spdd/config.json already has valid values for all six phases in the applicable section before running, so Step 1 takes the fast path.",
+      "setup": "Simulate a host with no mechanism to launch an isolated subagent at all. Ensure ~/.config/spdd/config.json already has valid values for all six phases in the applicable section before running, so Step 1 takes the fast path.",
       "assertions": [
         "Each phase still produces the same artifacts as isolated mode (canvas.md, plans/*.md, code changes)",
         "No subagent/background launch is invoked for any phase",
@@ -270,6 +270,18 @@
         "The delegated canvas subagent prompt states routing was already decided (complete route)",
         "The canvas is generated without asking the user whether to skip canvas generation",
         "No '⚠️ Confirm:' line about skipping canvas generation appears in the canvas or the phase report"
+      ]
+    },
+    {
+      "id": 72,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "On a host whose subagent mechanism exists but accepts no model override (e.g. opencode's Task tool with a subagent_type but no agent/model field), Step 2 still chooses Isolated mode — isolation no longer depends on model override. Each phase launches as a subagent at the host's default model, and the transparency line states that per-phase model selection is lost. When the subagent's report returns synchronously as the tool result, the orchestration continues immediately with the next step (checkpoint gate, then next phase).",
+      "setup": "Simulate a host with a subagent-launching mechanism that does not accept a model override. Ensure ~/.config/spdd/config.json already has valid values for all six phases in the applicable section before running, so Step 1 takes the fast path.",
+      "assertions": [
+        "Isolated mode is chosen — a subagent is launched for each phase, not an inline Skill call",
+        "The '[automatic decision]' line reports Isolated mode without model override and states per-phase model selection is lost",
+        "No Inline-mode transparency line appears and no phase runs inline in the current context",
+        "After each phase's report arrives, the orchestration continues to the next step without ending the flow or waiting for a further user prompt"
       ]
     }
   ]

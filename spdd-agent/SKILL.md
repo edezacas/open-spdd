@@ -2,11 +2,11 @@
 name: spdd-agent
 description: Builds a new feature end-to-end from a single plain-language description — runs canvas → design → implement → verify automatically, pausing only on required confirmations. Use when the user describes a new feature, or asks to build/add/implement something, without naming a specific /spdd-* command. Also handles requests to view or change the per-phase model configuration.
 license: Apache-2.0
-compatibility: Works with any agent. Per-phase model selection and subagent isolation require a host that can launch subagents with a model override (e.g. Claude Code's `Agent` tool, or opencode's Task tool with an `agent`/`model` field).
+compatibility: Works with any agent. Subagent isolation requires any host mechanism that can launch a subagent (e.g. Claude Code's `Agent` tool, or opencode's Task tool with a `subagent_type`); per-phase model selection additionally requires that mechanism to accept a model override.
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.13"
+  version: "1.14"
 ---
 
 ## Instructions
@@ -83,26 +83,26 @@ This determines the **applicable section**: `claude.models` under Claude Code, t
 
 ### Step 2 — Detect subagent support
 
-Check whether the current host exposes a mechanism to launch an isolated subagent with a model override — in Claude Code, the `Agent` tool (`subagent_type` + `model`); in opencode, the Task tool with an `agent`/`model` field; other hosts may name this differently but the shape is the same: spawn an isolated worker, pick its model, give it a prompt. If such a mechanism exists, use **Isolated mode** (Step 3). If it doesn't, use **Inline mode** (Step 3-alt).
+Check whether the current host exposes a mechanism to launch an isolated subagent — a way to spawn a separate worker and give it a prompt: in Claude Code, the `Agent` tool; in opencode, the Task tool with a `subagent_type`; other hosts may name it differently but the shape is the same. Isolation does not depend on model selection. If such a mechanism exists, use **Isolated mode** (Step 3) — and if that mechanism also accepts a model override (Claude Code's `Agent` `model` param, or opencode's Task tool where it exposes an `agent`/`model` field), take each phase's model from the config loaded in Step 1; otherwise the subagents run at the host's default model and per-phase model selection is lost. If no subagent mechanism exists at all, use **Inline mode** (Step 3-alt).
 
-Display the transparency line for this choice before Step 3/3-alt runs — phrased in the conversation's language per "Decision transparency" above: `[automatic decision] Isolated mode — the host exposes a subagent mechanism with model override.` or `[automatic decision] Inline mode — the host doesn't expose an isolatable subagent mechanism; per-phase model selection is lost.`
+Display the transparency line for this choice before Step 3/3-alt runs — phrased in the conversation's language per "Decision transparency" above: `[automatic decision] Isolated mode with model override — the host's subagent mechanism accepts a model.` or `[automatic decision] Isolated mode without model override — subagents launch at the host's default model; per-phase model selection is lost.` or `[automatic decision] Inline mode — the host doesn't expose a subagent mechanism; isolation and per-phase model selection are lost.`
 
 ### Step 3 — Isolated mode: phase invocation contract
 
-For each phase, build one subagent call: generic `subagent_type` the host provides for ad-hoc work (in Claude Code, `general-purpose`), `model` from the config loaded in Step 1, and a self-contained `prompt`. The `prompt` always includes, in this order:
+For each phase, build one subagent call: generic `subagent_type` the host provides for ad-hoc work (in Claude Code, `general-purpose`), a `model` override from the config loaded in Step 1 when the mechanism accepts one (see Step 2), and a self-contained `prompt`. The `prompt` always includes, in this order:
 
-1. **The skill call**, naming the phase skill (`spdd-canvas`, `spdd-design`, `spdd-implement`, or `spdd-verify`) and the exact context listed for it in Steps 4–8 — nothing more, nothing from this conversation's history. When delegating the canvas phase, additionally state that routing was already decided (complete route), so the canvas's applicability guard (its Step 2) is skipped.
+1. **The skill call**: instruct the subagent to load the named phase skill (`spdd-canvas`, `spdd-design`, `spdd-implement`, or `spdd-verify`) through its own skill-loading mechanism (e.g. a `Skill` tool) and follow it — or, if it has no such mechanism, to read that skill's installed `SKILL.md` and execute it exactly — together with the exact context listed for it in Steps 4–8 and nothing more, nothing from this conversation's history. When delegating the canvas phase, additionally state that routing was already decided (complete route), so the canvas's applicability guard (its Step 2) is skipped.
 2. **The never-block rule**, verbatim:
 
    > You do not have `AskUserQuestion` — you're running in the background, with no live user turn. Never stay blocked waiting for an answer that cannot arrive. If a step asks you to confirm a **content decision**, take the suggested default, continue, and add a `⚠️ Confirm:` line so it gets resolved later. If it asks you to confirm an **action with a side effect** (writing config, installing hooks, anything outside the artifact you're generating), do not execute it or assume a default in its favor — skip it, leave it noted as a pending `⚠️ Confirm:`, and don't touch the filesystem for that step.
 
 3. **What to report back on completion**: as specified by the phase skill's own Report step (saved/updated path, short summary, pending `⚠️ Confirm:` lines).
 
-Each subagent call is asynchronous: this skill's turn ends when it's issued, and resumes on the completion notification. Do not simulate or predict a subagent's result — wait for the real one.
+Subagent semantics vary by host: the report may come back synchronously as the call's tool result (opencode's Task tool, or Claude Code's foreground `Agent` call) or later as a completion notification (Claude Code's background `Agent`). Either way, treat what returns as the phase's real report — never simulate or predict it — and continue the orchestration immediately once it arrives: the Step 5 checkpoint gate after canvas, the next step after every other phase. Never end the flow after issuing the call.
 
 ### Step 3-alt — Inline mode
 
-If Step 2 found no subagent mechanism: invoke `Skill(<phase>)` directly in the current context, with the same context scoping listed for the phase in Steps 4–8. This runs synchronously in the foreground, so `AskUserQuestion` is available for real — the never-block rule doesn't apply, and any `⚠️ Confirm:` the phase raises can be resolved immediately instead of deferred. Orchestration and checkpoints (Steps 4–8) stay the same either way; only isolation and per-phase model are lost.
+If Step 2 found no subagent mechanism: invoke `Skill(<phase>)` directly in the current context, with the same context scoping listed for the phase in Steps 4–8. This runs synchronously in the foreground, so `AskUserQuestion` is available for real — the never-block rule doesn't apply, and any `⚠️ Confirm:` the phase raises can be resolved immediately instead of deferred. Orchestration and checkpoints (Steps 4–8) stay the same either way; only isolation and per-phase model are lost. When the invoked phase finishes, return to this skill's next step (5, 6, 7, or 8) — the phase's Report step ends the phase, not this orchestration.
 
 ### Step 4 — Canvas phase
 
