@@ -63,6 +63,10 @@ a passing test can't hide a silent divergence between what was agreed and what w
 - WHEN `spdd-verify` Step 9 runs on Claude Code
 - THEN the step checks `.claude/settings.local.json` for `SPDD` and `"subagentPromptCacheTtl"` in one sentence and reads `assets/hook-setup.md` only when something is missing
 
+**Scenario: the fold-back checks the resulting spec's integrity before reporting success (v2.1)**
+- WHEN `spdd-verify` completes the fold-back of a verified change into `spdd/specs/<domain>.md` (Step 8)
+- THEN before reporting success it inspects the resulting spec for (a) orphan unresolved `> ⚠️ Confirm:` blockquotes and (b) duplicated `##` section headings — the same heading text appearing more than once in the file; each finding is reported concretely (file, heading or line) and blocks the "folded" claim and the archive until the spec is fixed and the check re-passes (added after the 2026-09-02 audit found a duplicated `## Operations` in `spdd/specs/spdd-design.md` and an orphan unresolved Confirm in `spdd/specs/spdd-migrate.md`, both repaired in commit `5f0725d`; host-agnostic — lives in the skill's prose, no hook extension)
+
 ---
 
 ## Entities
@@ -71,6 +75,8 @@ a passing test can't hide a silent divergence between what was agreed and what w
 |------|------|-------|
 | "Diff-to-canvas check" section | `spdd-verify/SKILL.md` | Step 7, between Step 6 (Mark status) and Step 8 (Fold back and archive) |
 | Language note | `spdd-verify/SKILL.md` | Placed right after the Diff-to-canvas check gates (Step 7) and before "Fold back and archive" (Step 8) — covers new prose written in both steps |
+| Step 8 fold-back integrity check | `spdd-verify/SKILL.md` | Since v2.1 (SPDD-2026-09-02-1324 plan-02): pre-completion inspection for orphan unresolved `> ⚠️ Confirm:` blockquotes and duplicated `##` headings in the folded spec — findings block the "folded" claim and the archive |
+| Fold-back guard evals | `spdd-verify/evals/evals.json` | Cover the integrity guard: clean fold passes, duplicate `##` heading flagged, orphan unresolved `> ⚠️ Confirm:` flagged; eval ids live only in the file (single source of truth per the eval results registry convention) |
 
 ---
 
@@ -87,6 +93,7 @@ a passing test can't hide a silent divergence between what was agreed and what w
 | Gate | Discrepancy in a background subagent (delegated by `spdd-agent`) | Doesn't use `AskUserQuestion` (no live user turn) — treats the discrepancy the same as a Step 6 failure: stops the process, doesn't fold, reports the gap, leaves a `⚠️ Confirm:` line in the plan/canvas |
 | Report | Concrete discrepancy | Format: "Canvas declares: `<Operation or path>` → Actual code: `<what the diff shows, or its absence>`" — never a generic "doesn't match" |
 | Note | Language note in `spdd-verify/SKILL.md` (near Steps 7–8) | States that any new prose written during the Diff-to-canvas check (discrepancy notes, `⚠️ Confirm:` lines) or during Fold back and archive (new scenarios/Norms added to the spec, fold annotations) must be in English, regardless of the user's conversation language — the canvas/plan/spec documents are always in English; conversational replies to the user follow the conversation's language settings |
+| Check | Fold-back spec integrity (Step 8, before reporting success) | Inspects the resulting `spdd/specs/<domain>.md` for (a) orphan unresolved `> ⚠️ Confirm:` blockquotes and (b) duplicated `##` section headings; findings are reported and block the "folded" claim until fixed (v2.1) |
 
 ---
 

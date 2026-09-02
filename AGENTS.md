@@ -22,25 +22,25 @@ Structured Prompt-Driven Development (SPDD) skills. Each skill is a directory wi
 ```
 spdd-agent/SKILL.md                   # orchestrates canvas → design → implement → verify from one feature description
 spdd-agent/assets/model-bootstrap.md  # first-run/repair/migration/malformed model-config flows + JSON shape examples, read only when Step 1's completeness check finds the applicable section incomplete
-spdd-agent/evals/evals.json           # evals 31–48, 67–72: routing, config request, bootstrap, invalid-config repair, never-block rule, checkpoint gate, dependency order, divergence reopen, inline fallback, isolated-without-model-override, malformed shape, fast path, parse failure
+spdd-agent/evals/evals.json           # routing, config request, bootstrap, invalid-config repair, never-block rule, checkpoint gate, dependency order, divergence reopen, inline fallback, isolated-without-model-override, malformed shape, fast path, parse failure
 spdd-canvas/SKILL.md                  # REASONS canvas generator — /spdd-canvas
 spdd-canvas/assets/template-reasons.md
 spdd-canvas/assets/template-norms.md  # starting template for a target project's spdd/norms.md
 spdd-canvas/assets/hook-setup.md      # guard-hook + cache-TTL JSON, read only when the check finds it missing
-spdd-canvas/evals/evals.json          # evals 1–3, 9–10, 48–50: guard, generation quality, hook, applicability guard, spec read, freshness check, global norms
+spdd-canvas/evals/evals.json          # guard, generation quality, hook, applicability guard, spec read, freshness check, global norms
 spdd-design/SKILL.md                  # Canvas → independent implementation plans — /spdd-design
 spdd-design/assets/template-plan.md
-spdd-design/evals/evals.json          # evals 11–14, 29: single plan, split plans, dependencies, shared touchpoints, existing-plan guard
+spdd-design/evals/evals.json          # single plan, split plans, dependencies, shared touchpoints, existing-plan guard
 spdd-implement/SKILL.md               # Canvas/plan-driven implementer — /spdd-implement
 spdd-implement/assets/hook-setup.md   # same as spdd-canvas/assets/hook-setup.md, duplicated for standalone install
-spdd-implement/evals/evals.json       # evals 4–8: unresolved items, missing-plan guard, divergence, unmet dependency, final state
+spdd-implement/evals/evals.json       # unresolved items, missing-plan guard, divergence, unmet dependency, final state
 spdd-verify/SKILL.md                  # Verifies, tests, folds into spec, archives — /spdd-verify
 spdd-verify/assets/hook-setup.md      # same as spdd-canvas/assets/hook-setup.md, duplicated for standalone install
-spdd-verify/evals/evals.json          # evals 15–19, 30–36, 51: missing op, untested safeguard, single-plan archive, partial-plan hold, norm violation, spec dedup on fold-back, diff-to-canvas check, global-norms violation
+spdd-verify/evals/evals.json          # missing op, untested safeguard, single-plan archive, partial-plan hold, norm violation, spec dedup on fold-back, diff-to-canvas check, global-norms violation
 spdd-sync/SKILL.md                    # Code → living spec sync, behavior-preserving only — /spdd-sync
-spdd-sync/evals/evals.json            # evals 20–23: clean refactor sync, behavior-change rejection, ambiguous case, missing spec
+spdd-sync/evals/evals.json            # clean refactor sync, behavior-change rejection, ambiguous case, missing spec
 spdd-migrate/SKILL.md                 # One-time docs/prompts/ → spdd/changes|archive + docs/features/ → spdd/specs/ migration — /spdd-migrate
-spdd-migrate/evals/evals.json         # evals 24–28, 62–66: draft stays active, closed canvas archived, idempotency, hook rewrite, nothing to migrate, spec fold, orphan fold, fold idempotency, status-agnostic routing
+spdd-migrate/evals/evals.json         # draft stays active, closed canvas archived, idempotency, hook rewrite, nothing to migrate, spec fold, orphan fold, fold idempotency, status-agnostic routing
 evals/workspace/                      # gitignored — local eval results go here
 ```
 

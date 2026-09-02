@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 9 (SPDD hook and subagent cache TTL se
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.0"
+  version: "2.1"
 ---
 
 ## Instructions
@@ -79,7 +79,8 @@ If everything passes (diff is coherent or user confirms discrepancies), continue
 Only when *every* plan under this change is `Status: Verified` (or immediately, if the change never had a `plans/` split):
 
 1. Fold the canvas's Requirements, Entities, Operations, and Norms into `spdd/specs/<domain>.md` — create the file if it doesn't exist. Use the NEW/MODIFIED markers already present in the canvas's Requirements to decide whether to add new scenarios or replace existing ones; remove anything the canvas marked as replaced. Entities, Operations, and Norms don't carry NEW/MODIFIED markers — before appending a row, check whether one with the same name/identifier already exists in that section; if it does, update it in place instead of adding a duplicate. Only append when the name/identifier is genuinely new to the domain.
-2. Move the entire change folder from `spdd/changes/` to `spdd/archive/`.
+2. **Integrity check — before reporting success:** inspect the resulting `spdd/specs/<domain>.md` for two defects: (a) orphan unresolved `> ⚠️ Confirm:` blockquotes left behind by the fold, and (b) duplicated `##` section headings — the same heading text appearing more than once in the file (e.g. two `## Operations` sections). If either is found, report each finding concretely (file, heading or line), fix the spec, and re-run the check: the "folded" claim is blocked until the spec passes both checks, and the change folder is not archived in the meantime.
+3. Move the entire change folder from `spdd/changes/` to `spdd/archive/`.
 
 While any plan is still pending, do not fold or archive anything — a partially implemented feature should never be described as done in the living spec.
 

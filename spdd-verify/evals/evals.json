@@ -196,6 +196,41 @@
         "The canvas-only Norm is checked even though it is absent from the plan",
         "No canvas-only content is silently skipped because the plan does not mention it"
       ]
+    },
+    {
+      "id": 63,
+      "prompt": "/spdd-verify",
+      "expected_output": "A verified change folds back into an integral spec: no orphan unresolved '> ⚠️ Confirm:' blockquotes and no duplicated '##' section headings. The Step 8 integrity check runs on the folded spdd/specs/<domain>.md, finds nothing, and the skill proceeds to archive and report success normally.",
+      "setup": "Implement and verify a change whose fold produces a clean spec (the domain spec was recently repaired — no orphan Confirm blockquotes, no duplicated headings). Run spdd-verify through Step 8.",
+      "assertions": [
+        "The Step 8 integrity check runs on the folded spdd/specs/<domain>.md",
+        "The check reports no findings: no orphan Confirm blockquotes and no duplicate ## headings",
+        "The fold is reported as successful and the change folder is moved to spdd/archive/"
+      ]
+    },
+    {
+      "id": 64,
+      "prompt": "/spdd-verify",
+      "expected_output": "The folded spec ends up with a duplicated '##' section heading (e.g. two '## Operations' sections — appending a section that already existed instead of updating it in place). The Step 8 integrity check detects it, reports the duplicated heading concretely, and blocks the 'folded' claim — no success report, no archiving — until the spec is fixed and the check passes.",
+      "setup": "Simulate a fold that leaves spdd/specs/<domain>.md with the same '##' heading text twice (e.g. a second '## Operations' appended). Run spdd-verify through Step 8, then fix the duplicate and re-run.",
+      "assertions": [
+        "The integrity check detects the duplicated ## heading in spdd/specs/<domain>.md",
+        "The report names the duplicated heading and where it appears",
+        "The 'folded' claim is blocked: no success report and no move to spdd/archive/ while the duplicate exists",
+        "After fixing the spec, the check passes and archiving proceeds"
+      ]
+    },
+    {
+      "id": 65,
+      "prompt": "/spdd-verify",
+      "expected_output": "The folded spec still contains an orphan unresolved '> ⚠️ Confirm:' blockquote. The Step 8 integrity check detects it, reports it concretely, and blocks the 'folded' claim — no success report, no archiving — until the Confirm is resolved or removed and the check passes.",
+      "setup": "Simulate a fold that leaves an orphan '> ⚠️ Confirm:' blockquote in spdd/specs/<domain>.md (e.g. a canvas with an unresolved Confirm line was folded). Run spdd-verify through Step 8, then resolve the orphan and re-run.",
+      "assertions": [
+        "The integrity check detects the orphan '> ⚠️ Confirm:' blockquote in spdd/specs/<domain>.md",
+        "The report names the file and the orphaned Confirm text",
+        "The 'folded' claim is blocked: no success report and no move to spdd/archive/ while the orphan remains",
+        "After resolving the orphan, the check passes and archiving proceeds"
+      ]
     }
   ]
 }

@@ -112,6 +112,8 @@
 
 > Fold note (2026-09-02): the Entities/Operations rows covering Step 2's three isolation modes, Step 3-alt inline mode, and the Step 3 phase-chaining fix were written by an inline `spdd-sync` run executed pre-implementation per `SPDD-2026-09-02-1228-fix-foldback-spec-defects`'s staleness checkpoint — a user-accepted same-tree sync edit, documented in that canvas's Out of scope. The fold-back of that change into this spec was otherwise a no-op dedupe: the version-counter norm replacement was already applied in place.
 
+> Fold note (2026-09-02, SPDD-2026-09-02-1324): that change's mirror-norm contribution was applied in place during plan-01 — the Norms entry below (shared sections byte-identical across the mirror docs, audience-specific exception including Overview) is the folded form, so the fold-back into this spec is a no-op dedupe. The same change removed the eval id enumerations from the mirror docs' Structure sections and re-synced their shared sections byte-identical (one-time doc hygiene; eval coverage ids live only in `*/evals/evals.json`, per the eval results registry convention).
+
 ---
 
 ## Entities
@@ -161,4 +163,4 @@
 - Do not add automatic verification that the chosen route was "the correct one".
 - The authoritative version of a skill is the `metadata.version` in its own `SKILL.md` frontmatter — spec Norms never restate a version counter (removed 2026-09-02 after the counter drifted: spdd-agent said 1.13, skill was 1.14).
 - The never-block rule quoted verbatim in Step 3 is an exact string — edits elsewhere in the file (including meta-section compression) must never alter it (verified byte-identical after the v1.12 compression).
-- Mirror any Structure/Conventions/Gotchas edit into both `CLAUDE.md` and `AGENTS.md`.
+- Shared sections of the mirror docs — Structure, Conventions, Gotchas — must stay byte-identical across `CLAUDE.md` and `AGENTS.md`; audience-specific sections (Overview and Evaluating skills / Claude Code Integration in `CLAUDE.md` vs. host-agnostic Overview and Auto-triggers in `AGENTS.md`) may differ by design. A shared-section edit is applied to both files in the same pass; audience-specific content is never mirrored across them (Overview added to this exception 2026-09-02, foreground checkpoint of SPDD-2026-09-02-1324).

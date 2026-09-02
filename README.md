@@ -123,6 +123,18 @@ Compares the current code against `spdd/specs/<domain>.md` and updates Entities/
 
 > **Migrating from `docs/prompts/`:** if you installed an earlier version of these skills, run `/spdd-migrate` once in that project. It rewrites each old canvas's Acceptance Criteria/Safeguards into `WHEN/THEN`, then routes it by whether it's closed: `Status: Implemented`, or a paired `docs/features/<slug>.md` exists, moves it straight to `spdd/archive/SPDD-.../canvas.md` with `Status: Verified`; otherwise it stays `Status`-preserved in `spdd/changes/SPDD-.../canvas.md` as active work, same as anything from `spdd-canvas`. It also folds `docs/features/<slug>.md` — the old per-feature doc this project used before `spdd/specs/<domain>.md` existed — into the matching domain spec, inferring the domain the same way `spdd-canvas` does. It's non-destructive and idempotent: the original files are left in place unless you confirm deletion, and running it again skips whatever was already migrated or folded.
 
+## Framework maintenance
+
+Conventions that keep the framework's own hygiene cheap. They came out of the [2026-09-02 framework assessment](REVIEW-2026-09-02-framework-assessment.md), which records the review's findings with evidence and what was implemented vs. deferred.
+
+### Eval results registry
+
+The `*/evals/evals.json` files are the single source of truth for eval coverage — never duplicate eval id ranges anywhere else. CI (`.github/workflows/evals.yml`) runs static checks only: JSON validity, unique ids per file, non-empty `prompt`/`assertions`, and hook-asset sync. The agent-run eval suites themselves stay manual — they're expensive and need API keys. When you run one, keep raw transcripts local in `evals/workspace/` (gitignored) and commit a short summary instead — date, model, and per-id pass/fail, e.g. as a dated note under `evals/`.
+
+### Spec size budget
+
+A domain spec (`spdd/specs/<domain>.md`) has a soft budget of ~150 lines. It's a convention, not enforcement — when a spec outgrows it, consolidate: merge superseded scenarios into the current behavior, drop volatile state (statuses, per-change dates), and split the domain into two specs at a `##` section boundary if it genuinely covers two areas.
+
 ## Other agents
 
 Skills follow the agentskills.io format (`SKILL.md` + standard frontmatter). Place or symlink skill folders into `.agents/skills/` and any compatible agent discovers them automatically. For agents without native support (Cursor, Windsurf), paste the `SKILL.md` contents into the agent's rules file.
