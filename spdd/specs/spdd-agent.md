@@ -110,6 +110,8 @@
 - WHEN `spdd-agent/assets/model-bootstrap.md` is read
 - THEN it opens with a ≤2-sentence scope note, states flat-key immutability once (migration section), and keeps both JSON shape examples and every `AskUserQuestion` mechanic intact
 
+> Fold note (2026-09-02): the Entities/Operations rows covering Step 2's three isolation modes, Step 3-alt inline mode, and the Step 3 phase-chaining fix were written by an inline `spdd-sync` run executed pre-implementation per `SPDD-2026-09-02-1228-fix-foldback-spec-defects`'s staleness checkpoint — a user-accepted same-tree sync edit, documented in that canvas's Out of scope. The fold-back of that change into this spec was otherwise a no-op dedupe: the version-counter norm replacement was already applied in place.
+
 ---
 
 ## Entities
@@ -121,6 +123,8 @@
 | "Load or bootstrap the model configuration" (Step 1) | `spdd-agent/SKILL.md` | Detects the host first, then runs a lightweight completeness check against the applicable section (flat top-level `models` or `claude`-namespaced `claude.models`); reads `spdd-agent/assets/model-bootstrap.md` only when that section isn't already complete or a value change was explicitly requested |
 | Model-bootstrap asset | `spdd-agent/assets/model-bootstrap.md` | Holds the first-run bootstrap, repair, migration, malformed/unparseable-config, and explicit-value-change flows plus both JSON shape examples — read conditionally, not always loaded. Sole owner of every `AskUserQuestion` mechanic and config write for these cases; `SKILL.md` only routes to it, never restates its content |
 | Config bootstrap/repair/lazy-load evals | `spdd-agent/evals/evals.json` (evals 31–38, 48, 67–68) | Covers bootstrap, repair, migration, dual-key precedence, malformed-shape recovery, the fast path (67), and parse failure (68), for both the flat and `claude`-namespaced config shapes |
+| "Detect subagent support" (Step 2) | `spdd-agent/SKILL.md` | Since v1.14, three modes decoupled from model selection: Isolated with model override / Isolated without model override (per-phase model selection lost) / Inline mode — each announced with its own `[automatic decision]` transparency line |
+| "Inline mode" (Step 3-alt) | `spdd-agent/SKILL.md` | Runs the phase inline in the foreground when the host has no subagent mechanism: `AskUserQuestion` is available for real, the never-block rule doesn't apply, and Steps 4–8 checkpoints stay identical |
 
 ---
 
@@ -144,7 +148,8 @@
 | Asset | `spdd-agent/assets/model-bootstrap.md` — Repair section | Re-asks only for missing/empty/malformed phase values via `AskUserQuestion`, writes back to the applicable section only |
 | Asset | `spdd-agent/assets/model-bootstrap.md` — Migration section | Proposes copying the flat `models` six values into a new `claude.models` namespace via a real foreground `AskUserQuestion`; writes only once confirmed; never touches the original flat key |
 | Asset | `spdd-agent/assets/model-bootstrap.md` — JSON shape examples | Both the flat `{"models": {...}}` and `claude`-namespaced `{"claude": {"models": {...}}}` examples |
-| Step | "Phase invocation contract" (Step 3) | Each subagent prompt carries: the skill call + the exact context listed for that phase in Steps 4–8 (canvas delegation adds: routing already decided, applicability guard skipped), the never-block rule verbatim, and report-back per the phase skill's own Report step |
+| Step | "Phase invocation contract" (Step 3) | Each subagent prompt carries: the skill call + the exact context listed for that phase in Steps 4–8 (canvas delegation adds: routing already decided, applicability guard skipped), the never-block rule verbatim, and report-back per the phase skill's own Report step — the orchestrator continues the flow immediately once a phase report arrives and never ends it after issuing the call (v1.14 phase-chaining fix) |
+| Step | "Detect subagent support" (Step 2) | Checks whether the host exposes a subagent mechanism and whether it accepts a model override; before Step 3/3-alt runs, prints the matching transparency line: isolated-with-override / isolated-without-override / inline (v1.14) |
 | Step | "Checkpoint gate: canvas" (Step 5) | Resolves every `⚠️ Confirm:` line in the foreground (up to 4 per call); with zero Confirm lines it sets `**Status:** Confirmed` and skips straight to the design phase |
 | Step | "Implement phase, per plan" (Step 7) | Topological order by `Depends on:` — a plan never launches before every plan it depends on has reached `Status: Implemented` (matching `spdd-implement` Step 3's dependency check); context is that one plan only |
 
@@ -154,6 +159,6 @@
 
 - When in doubt between direct and complete route, ALWAYS choose the complete route.
 - Do not add automatic verification that the chosen route was "the correct one".
-- Increment `metadata.version` in `spdd-agent/SKILL.md` on any edit to its instructions (currently at 1.13, cumulative across changes).
+- The authoritative version of a skill is the `metadata.version` in its own `SKILL.md` frontmatter — spec Norms never restate a version counter (removed 2026-09-02 after the counter drifted: spdd-agent said 1.13, skill was 1.14).
 - The never-block rule quoted verbatim in Step 3 is an exact string — edits elsewhere in the file (including meta-section compression) must never alter it (verified byte-identical after the v1.12 compression).
 - Mirror any Structure/Conventions/Gotchas edit into both `CLAUDE.md` and `AGENTS.md`.

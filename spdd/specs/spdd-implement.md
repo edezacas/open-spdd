@@ -30,6 +30,23 @@ reading these documents as context spend fewer reasoning tokens.
 - THEN the step checks `.claude/settings.local.json` for `SPDD` and `"subagentPromptCacheTtl"` in
   one sentence and reads `assets/hook-setup.md` only when something is missing
 
+**Scenario: dependency check blocks silent out-of-order implementation** *(hand-authored 2026-09-02 from `spdd-implement/SKILL.md` Step 3 — audit-driven exception, not a fold-back)*
+- WHEN the plan being implemented declares `Depends on:` other than `none` and any dependency is
+  not at least `Status: Implemented`
+- THEN `spdd-implement` warns the user explicitly and asks for confirmation before continuing —
+  implementing out of order may be a deliberate choice, but it must never happen silently
+
+**Scenario: unresolved `⚠️ Confirm:` lines gate implementation** *(hand-authored 2026-09-02 from `spdd-implement/SKILL.md` Step 4 — audit-driven exception, not a fold-back)*
+- WHEN any `⚠️ Confirm:` lines exist in the canvas or the chosen plan
+- THEN `spdd-implement` stops, lists them, and asks the user to confirm each one, replaces each
+  with the confirmed value, and sets `**Status:** Confirmed` in the canvas (and plan, if any)
+  header before proceeding
+
+**Scenario: divergence from the canvas or plan stops implementation** *(hand-authored 2026-09-02 from `spdd-implement/SKILL.md` Step 6 — audit-driven exception, not a fold-back)*
+- WHEN the canvas or plan is discovered to be wrong or incomplete during implementation
+- THEN `spdd-implement` stops, explains the divergence, proposes the update, and resumes once
+  the user confirms — it never silently edits around an incorrect document
+
 ---
 
 ## Entities
@@ -53,7 +70,6 @@ reading these documents as context spend fewer reasoning tokens.
 ## Norms
 
 - Simplicity First: the language rule is a fixed, unconditional instruction — no conditional logic or per-project configuration.
-- Increment `metadata.version` of `spdd-implement/SKILL.md` whenever its instructions are edited (currently at 2.6, cumulative across changes).
+- The authoritative version of a skill is the `metadata.version` in its own `SKILL.md` frontmatter — spec Norms never restate a version counter (removed 2026-09-02 after the counter drifted: spdd-agent said 1.13, skill was 1.14).
 - Do not translate historical content already written in another language (e.g. divergence notes written before this change) — the rule is forward-only.
-- This plan is implemented after `plan-01-spdd-canvas.md`; the eval ID range it uses is computed as the repo-wide max at implementation time, so it necessarily comes after `spdd-canvas`'s IDs.
 - Test coverage: `spdd-implement/evals/evals.json` gained new cases 54–55, verifying that divergence notes written with Spanish conversational context still land in English.

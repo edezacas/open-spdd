@@ -51,23 +51,15 @@ handed to `spdd-implement` as artificial separate plans.
 | Template note | `> Language: ...` in `template-plan.md` | Explicitly declares the document is written in English, with no translate-to-detected-language instruction |
 | Note | Language defensive note in `spdd-design/SKILL.md` Step 7 | Placed right before the plan-generation instructions; states plan content (names, headings, all prose in Operations/Entities/Structure, and any notes added) must be in English regardless of the canvas's or the user's conversation language |
 | Boundary | Persisted document vs. conversational reply | The English-only rule applies only to `plan-*.md` content; conversational replies to the user in chat still follow the conversation's language rules (e.g. the user's global `CLAUDE.md` instructions) |
-| Homogeneity criterion | `spdd-design/SKILL.md` (Step 5 — "Decide: one plan or many") | Sentence(s) reserving real splitting for groups that differ in Operation type or are meant for different agents/people; merges same-type/same-kind groups into a single plan with one row per file |
+| Homogeneity criterion | `spdd-design/SKILL.md` (Step 5 — "Decide: one plan or many") | Sentence(s) reserving real splitting for groups that differ in Operation type or are meant for different agents/people; merges same-type/same-kind groups into a single plan with one row per file, even if their Structure paths don't overlap |
 | Step 7 field guidance | `spdd-design/SKILL.md` (Step 7) | Delegated to `template-plan.md` since v1.5 — the `Depends on:`/`Shared touchpoints:` bullets were a duplicate of the template's own guidance |
-
----
-
-## Operations
-
-| Type | Identifier | Description |
-|------|-----------|-------------|
-| Rule | Homogeneity-based single-plan decision (Step 5) | If every group found in Step 4 applies the same Operation type to files of the same kind, emit one plan with one row per file instead of splitting, even if their Structure paths don't overlap |
 
 ---
 
 ## Norms
 
 - Simplicity First: the language rule is a fixed, unconditional instruction — no conditional logic or per-project configuration.
-- Increment `metadata.version` of `spdd-design/SKILL.md` whenever its instructions are edited (currently at 1.5, cumulative across changes).
+- The authoritative version of a skill is the `metadata.version` in its own `SKILL.md` frontmatter — spec Norms never restate a version counter (removed 2026-09-02 after the counter drifted: spdd-agent said 1.13, skill was 1.14).
 - Do not translate historical content already written in another language (e.g. plans generated before this change) — the rule is forward-only.
 - New prose `spdd-verify` adds while folding a change into this spec, or during its Diff-to-canvas check, must also be in English (see `spdd-verify/SKILL.md`'s own language note near Steps 7–8).
 - The homogeneity criterion requires both the same Operation type AND the same file kind — groups that are small but differ in Operation type must still be split.

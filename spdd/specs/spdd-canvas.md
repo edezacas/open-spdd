@@ -99,7 +99,7 @@ downstream tasks reading these documents as context spend fewer reasoning tokens
 ## Norms
 
 - Simplicity First: the language rule is a fixed, unconditional instruction — no conditional logic or per-project configuration, no opt-out via `spdd/norms.md`.
-- Increment `metadata.version` of `spdd-canvas/SKILL.md` whenever its instructions are edited (currently at 2.10, cumulative across changes).
+- The authoritative version of a skill is the `metadata.version` in its own `SKILL.md` frontmatter — spec Norms never restate a version counter (removed 2026-09-02 after the counter drifted: spdd-agent said 1.13, skill was 1.14).
 - Do not translate historical content already written in another language (e.g. archived canvases generated before this change) — the rule is forward-only.
 - Test coverage: `spdd-canvas/evals/evals.json` cases 52–53 (English output from a Spanish description) and 54 (background freshness default) verify this spec's scenarios.
 - Every foreground ask in this skill names a never-block default for background runs (freshness: continue + `⚠️ Confirm: spec stale`; layers: single unified canvas + `⚠️ Confirm`) — a background subagent must never block on a step that only names an ask (v2.9).

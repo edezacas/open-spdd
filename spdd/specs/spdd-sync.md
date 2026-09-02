@@ -28,6 +28,12 @@ context spend fewer reasoning tokens.
   temporary language mix until the team decides to migrate the rest manually. **Confirmed:**
   this is the default behavior; the mix is not flagged as something to review
 
+**Scenario: observable-behavior suspicion stops the sync** *(hand-authored 2026-09-02 from `spdd-sync/SKILL.md` Step 4 — audit-driven exception, not a fold-back)*
+- WHEN Step 3 finds anything suggesting a change in observable behavior, not just shape
+- THEN `spdd-sync` does not touch the Requirements section: it stops and tells the user
+  explicitly this isn't a sync case — behavior changes need a new canvas via `spdd-canvas`,
+  not a sync. This is the core safeguard of the skill: it must never rewrite behavior silently
+
 ---
 
 ## Entities
@@ -50,6 +56,6 @@ context spend fewer reasoning tokens.
 ## Norms
 
 - Simplicity First: the language rule is a fixed, unconditional instruction — no conditional logic or per-project configuration.
-- Increment `metadata.version` of `spdd-sync/SKILL.md` whenever its instructions are edited (currently at 1.3, cumulative across changes).
+- The authoritative version of a skill is the `metadata.version` in its own `SKILL.md` frontmatter — spec Norms never restate a version counter (removed 2026-09-02 after the counter drifted: spdd-agent said 1.13, skill was 1.14).
 - Do not retranslate a spec's pre-existing content as a side effect of an unrelated partial update — only newly written text follows the English-only rule; a manual full-spec migration is a separate, deliberate decision left to the team.
 - This norm does not change Step 4's behavior guardrail (never rewrite the Requirements/behavior contract silently) — it only governs the language of the text `spdd-sync` is already allowed to write in Step 5.
