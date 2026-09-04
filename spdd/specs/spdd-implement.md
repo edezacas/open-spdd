@@ -55,6 +55,7 @@ reading these documents as context spend fewer reasoning tokens.
 |------|------|-------|
 | Step "Output language" | `spdd-implement/SKILL.md` (Step 0) | Replaced the former "Detect output language" step — no longer detects or asks for the user's language; fixes "English" as the language of all document content generated or modified during implementation |
 | Step "Ensure the SPDD hook and subagent cache TTL" (Step 5) | `spdd-implement/SKILL.md` + `assets/hook-setup.md` | Claude Code only; lazy-loaded since v2.4 — one-sentence presence check against `.claude/settings.local.json` (v2.6 trim), asset read only when the hook or TTL is missing |
+| Dedicated-agent wrapper templates | `assets/agent-claude-code.md`, `assets/agent-opencode.md` | New (per-host phase subagents feature): thin bodies (load-and-follow + byte-identical never-block rule + report-back) installed by `spdd-install` to `~/.claude/agents/spdd-implement.md` / `~/.config/opencode/agents/spdd-implement.md`; Claude Code tools `Read, Glob, Grep, Write, Edit, Bash`, opencode `permission: {edit: allow, bash: allow}` — full implementation access |
 
 ---
 

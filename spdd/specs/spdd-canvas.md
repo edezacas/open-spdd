@@ -81,6 +81,7 @@ downstream tasks reading these documents as context spend fewer reasoning tokens
 | Step "Context: freshness, spec, norms, and risk" (Step 5) | `spdd-canvas/SKILL.md` | Merged in v2.9 from the former freshness + context steps: infers the domain, runs the freshness check (foreground ask / background default), reads the living spec (`general.md` fallback), reads `spdd/norms.md`, identifies risk |
 | Step "Determine layers" (Step 6) | `spdd-canvas/SKILL.md` | Asks one-canvas-vs-per-layer only for two-concern descriptions; background default since v2.9: single unified canvas + `⚠️ Confirm` |
 | Step "Ensure the SPDD hook and subagent cache TTL" (Step 9) | `spdd-canvas/SKILL.md` + `assets/hook-setup.md` | Claude Code only; lazy-loaded since v2.8 — one-sentence presence check (v2.10 trim), asset read only when the hook or TTL is missing (renumbered from Step 11 in v2.9) |
+| Dedicated-agent wrapper templates | `assets/agent-claude-code.md`, `assets/agent-opencode.md` | New (per-host phase subagents feature): thin bodies (load-and-follow + byte-identical never-block rule + report-back) installed by `spdd-install` to `~/.claude/agents/spdd-canvas.md` / `~/.config/opencode/agents/spdd-canvas.md`; Claude Code tools `Read, Glob, Grep, Write, Bash`, opencode `permission: {edit: allow, bash: allow}` — no `Edit` (canvas-file `Write` only) |
 
 ---
 

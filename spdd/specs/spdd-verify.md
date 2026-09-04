@@ -77,6 +77,7 @@ a passing test can't hide a silent divergence between what was agreed and what w
 | Language note | `spdd-verify/SKILL.md` | Placed right after the Diff-to-canvas check gates (Step 7) and before "Fold back and archive" (Step 8) — covers new prose written in both steps |
 | Step 8 fold-back integrity check | `spdd-verify/SKILL.md` | Since v2.1 (SPDD-2026-09-02-1324 plan-02): pre-completion inspection for orphan unresolved `> ⚠️ Confirm:` blockquotes and duplicated `##` headings in the folded spec — findings block the "folded" claim and the archive |
 | Fold-back guard evals | `spdd-verify/evals/evals.json` | Cover the integrity guard: clean fold passes, duplicate `##` heading flagged, orphan unresolved `> ⚠️ Confirm:` flagged; eval ids live only in the file (single source of truth per the eval results registry convention) |
+| Dedicated-agent wrapper templates | `assets/agent-claude-code.md`, `assets/agent-opencode.md` | New (per-host phase subagents feature): thin bodies (load-and-follow + byte-identical never-block rule + report-back) installed by `spdd-install` to `~/.claude/agents/spdd-verify.md` / `~/.config/opencode/agents/spdd-verify.md`; Claude Code tools `Read, Glob, Grep, Bash, Edit, Write` (Write for first-time `spdd/specs/<domain>.md` creation), opencode `permission: {edit: allow, bash: allow}` |
 
 ---
 

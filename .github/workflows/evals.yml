@@ -2,8 +2,9 @@
 #
 # The agent-run eval suites themselves stay manual (expensive, need API keys) —
 # this workflow only does cheap structural checks: every spdd-*/evals/evals.json
-# must parse as JSON with unique ids and non-empty prompt/assertions, and the
-# three hook-setup.md asset copies must stay in sync.
+# must parse as JSON with unique ids and non-empty prompt/assertions, the three
+# hook-setup.md asset copies must stay in sync, and the never-block rule must
+# stay byte-identical between spdd-agent/SKILL.md and the 8 wrapper templates.
 #
 # Repo tooling: no SKILL.md references this file at execution time.
 
@@ -14,10 +15,16 @@ on:
     paths:
       - '**/evals/evals.json'
       - '**/assets/hook-setup.md'
+      - '**/assets/agent-claude-code.md'
+      - '**/assets/agent-opencode.md'
+      - 'spdd-agent/SKILL.md'
   pull_request:
     paths:
       - '**/evals/evals.json'
       - '**/assets/hook-setup.md'
+      - '**/assets/agent-claude-code.md'
+      - '**/assets/agent-opencode.md'
+      - 'spdd-agent/SKILL.md'
 
 jobs:
   validate:
@@ -78,3 +85,6 @@ jobs:
 
       - name: Guard-hook asset copies stay in sync
         run: bash scripts/check-hook-sync.sh
+
+      - name: Never-block rule stays in sync across wrapper templates
+        run: bash scripts/check-agent-sync.sh

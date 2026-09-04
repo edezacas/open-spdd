@@ -17,6 +17,7 @@ Structured Prompt-Driven Development (SPDD) skills. Each skill is a directory wi
 | `spdd-verify` | Never auto-triggers on its own. Invoked manually via `/spdd-verify`, or delegated by `spdd-agent`, once implementation is done |
 | `spdd-sync` | User refactored code that already has a living spec, outside the SPDD flow, and the spec no longer matches the code's shape — auto-triggers independently |
 | `spdd-migrate` | Project still has canvases under the old `docs/prompts/` layout or feature docs under `docs/features/` and needs a one-time move to `spdd/` — auto-triggers independently |
+| `spdd-install` | Never auto-triggers on its own. Invoked manually via `/spdd-install` to install or resync the dedicated per-phase subagent files — never offered or triggered from inside `spdd-agent`'s feature-build flow |
 
 ## Structure
 ```
@@ -41,6 +42,8 @@ spdd-sync/SKILL.md                    # Code → living spec sync, behavior-pres
 spdd-sync/evals/evals.json            # clean refactor sync, behavior-change rejection, ambiguous case, missing spec
 spdd-migrate/SKILL.md                 # One-time docs/prompts/ → spdd/changes|archive + docs/features/ → spdd/specs/ migration — /spdd-migrate
 spdd-migrate/evals/evals.json         # draft stays active, closed canvas archived, idempotency, hook rewrite, nothing to migrate, spec fold, orphan fold, fold idempotency, status-agnostic routing
+spdd-install/SKILL.md                 # installs/resyncs the 8 dedicated per-host phase agent files + Claude Code permissions.deny entries — /spdd-install
+spdd-install/evals/evals.json         # fresh install, resync, divergence remediation, missing-config guard, permissions.deny merge
 evals/workspace/                      # gitignored — local eval results go here
 ```
 

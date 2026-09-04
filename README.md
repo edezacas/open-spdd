@@ -12,8 +12,8 @@ SPDD fixes this by making the agent write down its understanding of a feature �
 - **A living spec, not stale docs.** `spdd-verify` folds every shipped feature into `spdd/specs/<domain>.md`. It's what the next canvas reads to avoid contradicting what's already there, and what `spdd-sync` keeps honest when code gets refactored outside the flow.
 - **Plans can run in parallel.** `spdd-design` splits independent work into separate plans with explicit `Depends on:` and `Shared touchpoints:` — safe to hand to different agents or people without stepping on each other.
 - **Automation that still asks.** `spdd-agent` runs the whole canvas → design → implement → verify flow from one plain-language description, but every `⚠️ Confirm:` and every side-effecting action (installing a hook, writing config) still pauses for a real decision — it speeds up the boring parts, not the judgment calls. For a trivial, unambiguous 1–2 file change it skips the ceremony and implements directly instead, always saying so first.
-- **Every autonomous call is visible.** Whenever `spdd-agent` resolves something on its own — routing a change direct instead of through the full flow, picking isolated vs. inline subagent mode — it prints a one-line "automatic decision: what, and why" before acting, so a wrong call is easy to catch and correct instead of silently baked in.
-- **No vendor lock-in.** Every skill is a plain `SKILL.md` in the agentskills.io format — no Claude Code-only agent files.
+- **Every autonomous call is visible.** Whenever `spdd-agent` resolves something on its own — routing a change direct instead of through the full flow, picking which subagent mode to use — it prints a one-line "automatic decision: what, and why" before acting, so a wrong call is easy to catch and correct instead of silently baked in.
+- **No vendor lock-in, with an opt-in fast path.** Every skill is a plain `SKILL.md` in the agentskills.io format that works with zero setup on any compatible agent. Run `/spdd-install` once to add an optional per-host layer of dedicated subagents (Claude Code, opencode) that `spdd-agent` picks up automatically — nothing changes for hosts or projects that skip it, every phase falls back to the same ad-hoc/inline behavior it always had.
 
 ## Skills
 
@@ -26,6 +26,7 @@ SPDD fixes this by making the agent write down its understanding of a feature �
 | `spdd-verify` | `/spdd-verify` | Checks the implemented diff against the canvas's Operations/Norms, tests edge cases, folds it into the living spec, and archives it |
 | `spdd-sync` | `/spdd-sync` | Syncs a behavior-preserving code refactor back into the living spec |
 | `spdd-migrate` | `/spdd-migrate` | One-time migration from the old flat `docs/prompts/` layout and `docs/features/` docs to `spdd/` |
+| `spdd-install` | `/spdd-install` | Installs or resyncs the optional dedicated per-phase subagent files (Claude Code, opencode) that `spdd-agent` uses in Dedicated mode |
 
 ## Installation
 
@@ -48,6 +49,7 @@ ln -s ~/projects/open-spdd/spdd-implement ~/.claude/skills/spdd-implement
 ln -s ~/projects/open-spdd/spdd-verify ~/.claude/skills/spdd-verify
 ln -s ~/projects/open-spdd/spdd-sync ~/.claude/skills/spdd-sync
 ln -s ~/projects/open-spdd/spdd-migrate ~/.claude/skills/spdd-migrate
+ln -s ~/projects/open-spdd/spdd-install ~/.claude/skills/spdd-install
 ```
 
 </details>
@@ -121,6 +123,8 @@ Compares the current code against `spdd/specs/<domain>.md` and updates Entities/
 
 > **Subagent prompt cache TTL:** `spdd-canvas`, `spdd-implement`, and `spdd-verify` each offer to add `"subagentPromptCacheTtl": "1h"` to `.claude/settings.local.json`, the same step and confirmation gesture already used to install the guard hook. Claude Code caches a background subagent's own conversation separately from the main session, at a 5-minute TTL by default regardless of your plan. `spdd-implement`'s edit → test → fix loop and `spdd-verify`'s write-test → run → diff-to-canvas loop can both run several turns inside one subagent call — a slow test run between turns is enough to miss that 5-minute window and force a full, uncached re-read of the conversation so far. The 1-hour TTL avoids that at the cost of a slightly pricier cache write, which pays off whenever a phase's own loop takes more than a few minutes.
 
+> **Optional dedicated subagents:** run `/spdd-install` once to provision a dedicated `spdd-canvas`/`spdd-design`/`spdd-implement`/`spdd-verify` subagent per phase, for Claude Code (`~/.claude/agents/`) and/or opencode (`~/.config/opencode/agents/`) — whichever host(s) you use, confirmed separately. `spdd-agent` detects and uses them automatically (Dedicated mode): deterministic skill preload, per-phase model selection restored on opencode, and tools scoped to what each phase actually needs, instead of a generic ad-hoc worker rebuilt from a long prompt on every call. It requires `~/.config/spdd/config.json` already bootstrapped — run `spdd-agent` first if it isn't — and is entirely additive, never invoked automatically from `spdd-agent`'s own flow. Re-run it any time you change a phase's model in the config to resync the installed files; it reports a divergence and offers to fix it instead of silently drifting.
+
 > **Migrating from `docs/prompts/`:** if you installed an earlier version of these skills, run `/spdd-migrate` once in that project. It rewrites each old canvas's Acceptance Criteria/Safeguards into `WHEN/THEN`, then routes it by whether it's closed: `Status: Implemented`, or a paired `docs/features/<slug>.md` exists, moves it straight to `spdd/archive/SPDD-.../canvas.md` with `Status: Verified`; otherwise it stays `Status`-preserved in `spdd/changes/SPDD-.../canvas.md` as active work, same as anything from `spdd-canvas`. It also folds `docs/features/<slug>.md` — the old per-feature doc this project used before `spdd/specs/<domain>.md` existed — into the matching domain spec, inferring the domain the same way `spdd-canvas` does. It's non-destructive and idempotent: the original files are left in place unless you confirm deletion, and running it again skips whatever was already migrated or folded.
 
 ## Framework maintenance
@@ -129,7 +133,7 @@ Conventions that keep the framework's own hygiene cheap. They came out of the [2
 
 ### Eval results registry
 
-The `*/evals/evals.json` files are the single source of truth for eval coverage — never duplicate eval id ranges anywhere else. CI (`.github/workflows/evals.yml`) runs static checks only: JSON validity, unique ids per file, non-empty `prompt`/`assertions`, and hook-asset sync. The agent-run eval suites themselves stay manual — they're expensive and need API keys. When you run one, keep raw transcripts local in `evals/workspace/` (gitignored) and commit a short summary instead — date, model, and per-id pass/fail, e.g. as a dated note under `evals/`.
+The `*/evals/evals.json` files are the single source of truth for eval coverage — never duplicate eval id ranges anywhere else. CI (`.github/workflows/evals.yml`) runs static checks only: JSON validity, unique ids per file, non-empty `prompt`/`assertions`, hook-asset sync, and never-block-rule sync across the dedicated-subagent wrapper templates. The agent-run eval suites themselves stay manual — they're expensive and need API keys. When you run one, keep raw transcripts local in `evals/workspace/` (gitignored) and commit a short summary instead — date, model, and per-id pass/fail, e.g. as a dated note under `evals/`.
 
 ### Spec size budget
 

@@ -283,6 +283,107 @@
         "No Inline-mode transparency line appears and no phase runs inline in the current context",
         "After each phase's report arrives, the orchestration continues to the next step without ending the flow or waiting for a further user prompt"
       ]
+    },
+    {
+      "id": 73,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "All four dedicated agent files (spdd-canvas, spdd-design, spdd-implement, spdd-verify) are present in the host's agent directory. Step 2 selects Dedicated mode for every phase, displaying its own '[automatic decision] Dedicated mode' line before each launch. Step 3-dedicated builds the call (Agent with subagent_type: \"spdd-<phase>\" on Claude Code, or Task with subagent_type: \"spdd-<phase>\" on opencode) with phase context only — no restated never-block rule or report contract in the prompt. Each phase reports back per its own contract, and the Step 5/6/7/8 checkpoint gates still run exactly as before.",
+      "setup": "Install all four dedicated agent files for the current host (e.g. via a stub/fixture equivalent to what spdd-install would write) before running. Ensure ~/.config/spdd/config.json already has valid values for all six phases so Step 1 takes the fast path.",
+      "assertions": [
+        "A '[automatic decision] Dedicated mode' line appears before each of the four phase launches",
+        "Every phase is invoked with subagent_type: \"spdd-<phase>\", not a generic ad-hoc subagent_type",
+        "The Step 5 checkpoint gate still runs after canvas, and Steps 6/7/8 still run in order",
+        "The dedicated-mode prompt for each phase does not restate the never-block rule text or the report-contract instructions verbatim — only phase context"
+      ]
+    },
+    {
+      "id": 74,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "No dedicated spdd-<phase> agent file exists for any phase on the current host. Step 2 never selects Dedicated mode for any phase; every phase falls back to Step 3 (Isolated mode) or Step 3-alt (Inline mode) exactly as it would have before Dedicated mode existed — byte-identical behavior.",
+      "setup": "Ensure no ~/.claude/agents/spdd-*.md or ~/.config/opencode/agents/spdd-*.md files exist. Ensure ~/.config/spdd/config.json already has valid values for all six phases.",
+      "assertions": [
+        "No '[automatic decision] Dedicated mode' line appears at any point",
+        "Every phase is invoked with the generic ad-hoc subagent_type (e.g. general-purpose on Claude Code), never subagent_type: \"spdd-<phase>\"",
+        "The Step 3 prompt for each phase still includes the never-block rule verbatim and the report-contract instruction, exactly as in the pre-Dedicated-mode contract"
+      ]
+    },
+    {
+      "id": 75,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "The host has no subagent-launching mechanism at all (same setup as the existing inline-mode eval). Even though the host has no agent-file directory concept to speak of, Step 2 correctly never selects Dedicated mode (there is nothing to detect), and every phase runs inline via Step 3-alt exactly as it did before Dedicated mode existed.",
+      "setup": "Simulate a host with no mechanism to launch an isolated subagent at all. Ensure ~/.config/spdd/config.json already has valid values for all six phases.",
+      "assertions": [
+        "No '[automatic decision] Dedicated mode' line appears",
+        "Every phase runs via direct Skill(<phase>) invocation in the current context, not a subagent call",
+        "The Inline-mode transparency line still appears exactly as before"
+      ]
+    },
+    {
+      "id": 76,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "Running under Claude Code with a dedicated spdd-implement agent file installed (frontmatter model: sonnet as its static fallback), Step 3-dedicated's Agent call passes model: taken from config.json's current implement value (e.g. opus) as the per-invocation param. The subagent actually runs at the config.json value, not the frontmatter's sonnet fallback, per Claude Code's documented per-invocation-overrides-frontmatter precedence.",
+      "setup": "Install the dedicated spdd-implement Claude Code agent file with model: sonnet in its frontmatter. Set config.json's implement value to a different model (e.g. opus). Run under Claude Code (CLAUDECODE=1).",
+      "assertions": [
+        "The Agent tool call for the implement phase includes model: matching config.json's current implement value, not the agent file's frontmatter value",
+        "No '[automatic decision]' line claims the frontmatter fallback was used when a per-invocation override was available"
+      ]
+    },
+    {
+      "id": 77,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "Running under opencode with a dedicated spdd-verify agent file installed, whose body carries `<!-- spdd-install:model-source=sonnet -->` while config.json's current verify value is `opus` — a genuine divergence. Before launching the verify phase, Step 2 reports the divergence via a transparency line pointing at /spdd-install to resync, then proceeds anyway with the agent file's own frontmatter model (the Task tool has no model field to override it with). The agent file itself is never rewritten by spdd-agent.",
+      "setup": "Install the dedicated spdd-verify opencode agent file with marker `spdd-install:model-source=sonnet` and frontmatter model translated from sonnet, while config.json's current verify value is opus. Run under opencode (no CLAUDECODE).",
+      "assertions": [
+        "A transparency line reports the model divergence between the marker and config.json's current raw value, and mentions /spdd-install as the way to resync",
+        "The verify phase still launches — the divergence is reported, not treated as a blocking error",
+        "The dedicated agent file on disk is byte-for-byte unchanged after the run — spdd-agent never rewrites it",
+        "The Task call for the verify phase carries no model field (opencode's Task tool has none) — the model in effect is whatever the agent file's frontmatter already holds"
+      ]
+    },
+    {
+      "id": 78,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "Running under opencode with a dedicated spdd-canvas agent file whose body carries `<!-- spdd-install:model-source=sonnet -->` (a Claude Code tier alias, matching config.json's current canvas value of sonnet exactly) while the frontmatter model: field holds a different-looking translated provider-qualified id (e.g. anthropic/claude-sonnet-5). Because the comparison is marker-vs-raw-config-value (not model:-vs-raw-config-value), this is correctly recognized as no divergence at all — the translated model: field looking different from the raw config.json string is expected and never itself reported as a mismatch.",
+      "setup": "Install the dedicated spdd-canvas opencode agent file with marker `spdd-install:model-source=sonnet` and frontmatter `model: anthropic/claude-sonnet-5`. Set config.json's current canvas value to the tier alias `sonnet` (matching the marker exactly). Run under opencode.",
+      "assertions": [
+        "No divergence transparency line appears for the canvas phase",
+        "The comparison performed is explicitly marker-vs-config.json-raw-value, never frontmatter model:-vs-config.json-raw-value",
+        "The canvas phase launches via Dedicated mode without any warning about the model"
+      ]
+    },
+    {
+      "id": 79,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "A dedicated spdd-design agent file exists on the current host, but its frontmatter is unparseable (e.g. broken YAML). Step 2 treats this the same as an absent file: it warns, skips Dedicated mode for the design phase only, and falls back to Step 3/3-alt for that phase — the flow never blocks or crashes. Every other phase's dedicated-mode detection is unaffected by this one bad file.",
+      "setup": "Install a dedicated spdd-design agent file with unparseable/malformed frontmatter (or a missing required field, or an empty body) for the current host; leave the other three phases' dedicated files valid. Ensure config.json already has valid values for all six phases.",
+      "assertions": [
+        "A warning is surfaced about the malformed spdd-design agent file",
+        "The design phase runs via Step 3 or Step 3-alt (ad-hoc), not Dedicated mode",
+        "The flow does not stop, crash, or block on the malformed file",
+        "The other three phases (canvas, implement, verify) still use Dedicated mode normally if their own agent files are valid"
+      ]
+    },
+    {
+      "id": 80,
+      "prompt": "un agente que no es spdd-agent intenta usar el subagente spdd-implement para una tarea no relacionada con el flujo SPDD, con los 8 wrappers y las 4 entradas permissions.deny ya instalados",
+      "expected_output": "With the dedicated agent files and (on Claude Code) the 4 permissions.deny entries already installed, a primary agent working on unrelated work does not proactively pick spdd-implement (or any spdd-<phase> agent) for that work: the description's forbid-auto-delegation wording discourages it on both hosts, opencode's hidden: true keeps it out of the @ menu, and Claude Code's permissions.deny hard-blocks any Agent(spdd-implement) call from outside spdd-agent's own orchestration.",
+      "setup": "Install all 8 dedicated agent files and, for Claude Code, the 4 permissions.deny entries in ~/.claude/settings.json. Simulate a primary agent, outside spdd-agent's flow, considering delegation for an unrelated task.",
+      "assertions": [
+        "The primary agent does not select spdd-implement (or any spdd-<phase> agent) to delegate the unrelated task",
+        "On Claude Code, an attempted Agent(spdd-implement) call from outside spdd-agent's orchestration is blocked by permissions.deny",
+        "On opencode, spdd-implement does not appear as a selectable option in the @ menu"
+      ]
+    },
+    {
+      "id": 81,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "Only the Claude Code dedicated agent files are installed (~/.claude/agents/spdd-*.md); no opencode agent files exist. Running under Claude Code, every phase uses Dedicated mode. Running the same scenario under opencode (only opencode files installed, no Claude Code files), every phase uses Dedicated mode there instead — and running under whichever host has no files installed always falls back to Step 3/3-alt for that host, with no cross-host leakage in either direction.",
+      "setup": "Exercise this twice: (a) only ~/.claude/agents/spdd-*.md installed, run under Claude Code (CLAUDECODE=1); (b) only ~/.config/opencode/agents/spdd-*.md installed, run under opencode (no CLAUDECODE). Ensure config.json already has valid values for all six phases in both runs.",
+      "assertions": [
+        "(a) Every phase uses Dedicated mode under Claude Code",
+        "(b) Every phase uses Dedicated mode under opencode",
+        "Detection only ever checks the current host's own agent directory — a Claude Code run never inspects ~/.config/opencode/agents/, and an opencode run never inspects ~/.claude/agents/"
+      ]
     }
   ]
 }

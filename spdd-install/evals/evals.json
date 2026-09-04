@@ -1,0 +1,87 @@
+{
+  "skill_name": "spdd-install",
+  "evals": [
+    {
+      "id": 82,
+      "prompt": "/spdd-install",
+      "expected_output": "No dedicated agent files exist yet on either host. The skill reads the 8 wrapper templates, then confirms via AskUserQuestion separately for Claude Code and opencode. On confirmation of both, it writes all 8 target files (4 per host) and merges the 4 permissions.deny entries into ~/.claude/settings.json.",
+      "setup": "Ensure ~/.config/spdd/config.json already has all six phase values complete in the applicable section. Ensure neither ~/.claude/agents/spdd-*.md nor ~/.config/opencode/agents/spdd-*.md exist. Ensure ~/.claude/settings.json has no permissions.deny entries for spdd-<phase> yet.",
+      "assertions": [
+        "AskUserQuestion is called once for the Claude Code install and once (separately) for the opencode install",
+        "After confirming both, all 4 ~/.claude/agents/spdd-{canvas,design,implement,verify}.md files exist and match their templates (aside from the static model: sonnet fallback already in the template)",
+        "After confirming both, all 4 ~/.config/opencode/agents/spdd-{canvas,design,implement,verify}.md files exist with a model: field and a spdd-install:model-source marker",
+        "~/.claude/settings.json's permissions.deny array contains exactly Agent(spdd-canvas), Agent(spdd-design), Agent(spdd-implement), Agent(spdd-verify) with no duplicates"
+      ]
+    },
+    {
+      "id": 83,
+      "prompt": "/spdd-install",
+      "expected_output": "~/.config/spdd/config.json is missing, malformed, or missing one or more of the six phase keys in the applicable section. The skill stops immediately with a message pointing the user at spdd-agent to bootstrap the config first. It installs nothing, and it does not open or duplicate any part of spdd-agent/assets/model-bootstrap.md.",
+      "setup": "Exercise three variants: (a) ~/.config/spdd/config.json does not exist; (b) it exists but fails to parse as JSON; (c) it parses but the applicable section is missing one of the six phase keys (e.g. verify).",
+      "assertions": [
+        "In all three variants, the skill stops before Step 2 and does not read any of the 8 wrapper templates",
+        "In all three variants, no file is written under ~/.claude/agents/, ~/.config/opencode/agents/, or ~/.claude/settings.json",
+        "The message directs the user to run spdd-agent (or an explicit model-config request) first",
+        "spdd-agent/assets/model-bootstrap.md is never opened or duplicated by this skill in any variant"
+      ]
+    },
+    {
+      "id": 84,
+      "prompt": "/spdd-install",
+      "expected_output": "All 8 dedicated agent files already exist and are fully in sync: on opencode, every file's spdd-install:model-source marker matches config.json's current raw value for that phase exactly (including the case where config.json holds a tier alias like sonnet and the marker also holds sonnet, even though the frontmatter model: field holds a different-looking translated id such as anthropic/claude-sonnet-5). Re-running the skill is idempotent: no duplicate permissions.deny entries are created, and no divergence-remediation prompt is spuriously raised for the tier-alias-vs-translated-id case.",
+      "setup": "Install all 8 files with opencode markers matching config.json's current raw values exactly (including at least one phase where config.json stores a tier alias and the marker stores that same alias while model: stores the translated provider-qualified id). Install the 4 permissions.deny entries already. Run /spdd-install again.",
+      "assertions": [
+        "No AskUserQuestion divergence-remediation prompt appears for any of the 4 opencode phases",
+        "~/.claude/settings.json's permissions.deny array still contains exactly the 4 entries, with no duplicates added",
+        "The tier-alias phase (marker equals config.json's raw alias, model: holds the translated id) is not reported as a divergence",
+        "File contents for all 8 files are unchanged (or rewritten with identical content) after the run"
+      ]
+    },
+    {
+      "id": 85,
+      "prompt": "/spdd-install",
+      "expected_output": "The dedicated spdd-implement opencode agent file's spdd-install:model-source marker (e.g. sonnet) differs from config.json's current raw implement value (e.g. opus) — a genuine divergence. The skill reports the divergence and offers, via a confirmation-gated AskUserQuestion, to rewrite both the model: field (re-translated toward opus) and the marker toward opus. It never rewrites silently or automatically.",
+      "setup": "Install the dedicated spdd-implement opencode agent file with marker spdd-install:model-source=sonnet. Set config.json's current implement value to opus. Leave the other three opencode phases in sync. Run /spdd-install.",
+      "assertions": [
+        "The divergence for the implement phase is reported before any AskUserQuestion for it",
+        "AskUserQuestion is called offering a confirmation-gated rewrite specifically for the implement phase's model: and marker",
+        "If declined, the implement phase's model: and marker remain unchanged after the run",
+        "If confirmed, both the model: field (re-translated) and the marker are updated to opus together — never only one of the two",
+        "The other three opencode phases (already in sync) are not touched or re-prompted"
+      ]
+    },
+    {
+      "id": 86,
+      "prompt": "/spdd-install",
+      "expected_output": "The dedicated spdd-verify opencode agent file exists but has no spdd-install:model-source marker at all (installed before the marker existed, or hand-edited). The skill treats the missing marker the same as a divergence needing remediation — it does not silently skip the check or assume the file is already in sync — and offers the same confirmation-gated rewrite of both model: and the marker toward config.json's current raw verify value.",
+      "setup": "Install the dedicated spdd-verify opencode agent file with a valid model: field but no spdd-install:model-source marker anywhere in the body. Ensure config.json has a valid current verify value. Run /spdd-install.",
+      "assertions": [
+        "The missing marker is reported as a divergence, not silently treated as up to date",
+        "AskUserQuestion offers a confirmation-gated rewrite of both model: and the marker for the verify phase",
+        "If confirmed, the file ends up with a spdd-install:model-source marker matching config.json's current raw verify value"
+      ]
+    },
+    {
+      "id": 87,
+      "prompt": "/spdd-install",
+      "expected_output": "~/.claude/settings.json already has unrelated pre-existing permissions.deny entries (e.g. for some other tool) before the run. After installing/resyncing, the 4 spdd-<phase> entries are present and the unrelated pre-existing entries are still present, untouched, and not duplicated or reordered destructively.",
+      "setup": "Create ~/.claude/settings.json with an existing permissions.deny array containing at least one unrelated entry (e.g. \"Bash(rm -rf *)\"). Ensure the 4 spdd-<phase> entries are not yet present. Run /spdd-install and confirm the Claude Code install.",
+      "assertions": [
+        "The pre-existing unrelated permissions.deny entry is still present after the run, byte-for-byte",
+        "The 4 spdd-<phase> entries are added alongside it, with no duplicates",
+        "No other unrelated key in ~/.claude/settings.json is altered"
+      ]
+    },
+    {
+      "id": 88,
+      "prompt": "/spdd-install",
+      "expected_output": "The user declines the Claude Code confirmation (Step 3) but confirms the opencode one (Step 4), or vice versa. The two hosts are confirmed and installed independently: declining one does not block or skip the other.",
+      "setup": "Ensure config.json is complete and neither host's files exist yet. Run /spdd-install and decline only the Claude Code AskUserQuestion, confirming the opencode one. Repeat with the roles reversed.",
+      "assertions": [
+        "When Claude Code is declined and opencode confirmed: no ~/.claude/agents/spdd-*.md files or permissions.deny entries are written, but all 4 ~/.config/opencode/agents/spdd-*.md files are written",
+        "When opencode is declined and Claude Code confirmed: no ~/.config/opencode/agents/spdd-*.md files are written, but all 4 ~/.claude/agents/spdd-*.md files and the 4 permissions.deny entries are written",
+        "In both cases the final report states which host was installed and which was declined"
+      ]
+    }
+  ]
+}

@@ -6,7 +6,7 @@ compatibility: Works with any agent. Subagent isolation requires any host mechan
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.14"
+  version: "1.15"
 ---
 
 ## Instructions
@@ -83,11 +83,28 @@ This determines the **applicable section**: `claude.models` under Claude Code, t
 
 ### Step 2 — Detect subagent support
 
-Check whether the current host exposes a mechanism to launch an isolated subagent — a way to spawn a separate worker and give it a prompt: in Claude Code, the `Agent` tool; in opencode, the Task tool with a `subagent_type`; other hosts may name it differently but the shape is the same. Isolation does not depend on model selection. If such a mechanism exists, use **Isolated mode** (Step 3) — and if that mechanism also accepts a model override (Claude Code's `Agent` `model` param, or opencode's Task tool where it exposes an `agent`/`model` field), take each phase's model from the config loaded in Step 1; otherwise the subagents run at the host's default model and per-phase model selection is lost. If no subagent mechanism exists at all, use **Inline mode** (Step 3-alt).
+**Host-capability fallback (Levels 1–3, determined once).** Check whether the current host exposes a mechanism to launch an isolated subagent — a way to spawn a separate worker and give it a prompt: in Claude Code, the `Agent` tool; in opencode, the Task tool with a `subagent_type`; other hosts may name it differently but the shape is the same. Isolation does not depend on model selection. If such a mechanism exists, use **Isolated mode** (Step 3) — and if that mechanism also accepts a model override (Claude Code's `Agent` `model` param, or opencode's Task tool where it exposes an `agent`/`model` field), take each phase's model from the config loaded in Step 1; otherwise the subagents run at the host's default model and per-phase model selection is lost. If no subagent mechanism exists at all, use **Inline mode** (Step 3-alt). This is a one-time, per-host determination — it does not vary per phase.
 
-Display the transparency line for this choice before Step 3/3-alt runs — phrased in the conversation's language per "Decision transparency" above: `[automatic decision] Isolated mode with model override — the host's subagent mechanism accepts a model.` or `[automatic decision] Isolated mode without model override — subagents launch at the host's default model; per-phase model selection is lost.` or `[automatic decision] Inline mode — the host doesn't expose a subagent mechanism; isolation and per-phase model selection are lost.`
+Display the transparency line for this choice once, before the first phase that needs it runs — phrased in the conversation's language per "Decision transparency" above: `[automatic decision] Isolated mode with model override — the host's subagent mechanism accepts a model.` or `[automatic decision] Isolated mode without model override — subagents launch at the host's default model; per-phase model selection is lost.` or `[automatic decision] Inline mode — the host doesn't expose a subagent mechanism; isolation and per-phase model selection are lost.`
+
+**Dedicated agent detection (Level 0, checked per phase).** Independently of the host-capability fallback above, right before invoking **each individual phase** (Steps 4, 6, 7, 8), check whether a dedicated agent definition exists for that specific phase in the host's agent directory: `~/.claude/agents/spdd-<phase>.md` (Claude Code) or `~/.config/opencode/agents/spdd-<phase>.md` (opencode). If it exists and is well-formed (parseable frontmatter, required fields present, non-empty body), use **Dedicated mode** (Step 3-dedicated) for that phase instead of Step 3/3-alt. A file that exists but is malformed (unparseable frontmatter, missing required fields, or an empty body) is treated as absent: warn, skip Dedicated mode for that phase, and fall back to whatever Step 3/3-alt would otherwise use — the flow never blocks or crashes over a bad agent file. This check is strictly per-phase and per-host: a phase with no dedicated file falls back on its own (no effect on the other phases), and only the current host's agent directory is ever checked — a project running under opencode never looks at `~/.claude/agents/`, and vice versa, so having only one host's wrappers installed never leaks across hosts.
+
+Display `[automatic decision] Dedicated mode — a dedicated spdd-<phase> agent is installed; skill preload and structural tool scoping apply.` immediately before launching any phase for which Dedicated mode applies.
+
+**opencode divergence check (Dedicated mode only).** When Dedicated mode is selected for a phase on opencode: read the `<!-- spdd-install:model-source=<value> -->` marker from the agent file's body (written by `spdd-install`) and compare it — as a plain string, **never** translated — against config.json's current raw value for that phase (loaded in Step 1). Never compare config.json's raw value against the frontmatter `model:` field directly — `model:` always holds an already-translated provider-qualified id, while config.json commonly holds a tier alias (`sonnet`), so that comparison would false-positive on every run on any machine using tier-style values. If the marker is missing entirely (a file installed before the marker existed, or hand-written), treat it as unknown and skip the comparison — do not guess. If the marker and config.json's raw value differ, display a transparency line reporting the divergence and pointing at `/spdd-install` to resync, then proceed anyway with the agent file's own model (the Task tool cannot override it) — never rewrite the agent file from here; that confirmation-gated rewrite is `spdd-install`'s job alone.
+
+### Step 3-dedicated — Dedicated mode: phase invocation contract
+
+When Step 2 selects Dedicated mode for a phase:
+
+- **Claude Code:** call `Agent` with `subagent_type: "spdd-<phase>"` and `model:` taken from config.json (Step 1) — the per-invocation `model` param overrides the agent file's frontmatter fallback, keeping config.json the single source of truth for per-phase models.
+- **opencode:** call the Task tool with `subagent_type: "spdd-<phase>"`; no model field exists on the Task tool, so the model comes entirely from the agent file's own frontmatter (already checked for divergence against config.json above).
+- The prompt carries **phase context only**: the exact context listed for that phase in Steps 4–8, plus — for the canvas phase — the routing-already-decided note (complete route, so the canvas's applicability guard is skipped). The never-block rule and the report contract are **not** repeated in the prompt — the wrapper agent's own body already carries both, verbatim.
+- Report handling is identical to Step 3 below: treat whatever returns (synchronous tool result or later completion notification) as the phase's real report — never simulate or predict it — and continue the orchestration immediately once it arrives.
 
 ### Step 3 — Isolated mode: phase invocation contract
+
+Applies when Step 2 did **not** select Dedicated mode for the phase being launched.
 
 For each phase, build one subagent call: generic `subagent_type` the host provides for ad-hoc work (in Claude Code, `general-purpose`), a `model` override from the config loaded in Step 1 when the mechanism accepts one (see Step 2), and a self-contained `prompt`. The `prompt` always includes, in this order:
 
@@ -102,11 +119,11 @@ Subagent semantics vary by host: the report may come back synchronously as the c
 
 ### Step 3-alt — Inline mode
 
-If Step 2 found no subagent mechanism: invoke `Skill(<phase>)` directly in the current context, with the same context scoping listed for the phase in Steps 4–8. This runs synchronously in the foreground, so `AskUserQuestion` is available for real — the never-block rule doesn't apply, and any `⚠️ Confirm:` the phase raises can be resolved immediately instead of deferred. Orchestration and checkpoints (Steps 4–8) stay the same either way; only isolation and per-phase model are lost. When the invoked phase finishes, return to this skill's next step (5, 6, 7, or 8) — the phase's Report step ends the phase, not this orchestration.
+Applies when Step 2 did not select Dedicated mode for the phase, and found no subagent mechanism at all. Invoke `Skill(<phase>)` directly in the current context, with the same context scoping listed for the phase in Steps 4–8. This runs synchronously in the foreground, so `AskUserQuestion` is available for real — the never-block rule doesn't apply, and any `⚠️ Confirm:` the phase raises can be resolved immediately instead of deferred. Orchestration and checkpoints (Steps 4–8) stay the same either way; only isolation and per-phase model are lost. When the invoked phase finishes, return to this skill's next step (5, 6, 7, or 8) — the phase's Report step ends the phase, not this orchestration.
 
 ### Step 4 — Canvas phase
 
-Launch (or run inline) the `canvas` phase. Context: the user's feature description, verbatim — it isn't in any file yet.
+Launch the `canvas` phase, per Step 2's decision for this phase (Dedicated, Isolated, or Inline). Context: the user's feature description, verbatim — it isn't in any file yet.
 
 ### Step 5 — Checkpoint gate: canvas
 
@@ -116,15 +133,15 @@ If the canvas has zero `⚠️ Confirm:` lines, set `**Status:** Confirmed` and 
 
 ### Step 6 — Design phase
 
-Launch (or run inline) the `design` phase. Context: the path to the now-confirmed `canvas.md`. Apply the same checkpoint gate as Step 5 to every `⚠️ Confirm:` line across the resulting plan(s) before advancing.
+Launch the `design` phase, per Step 2's decision for this phase. Context: the path to the now-confirmed `canvas.md`. Apply the same checkpoint gate as Step 5 to every `⚠️ Confirm:` line across the resulting plan(s) before advancing.
 
 ### Step 7 — Implement phase, per plan
 
-Order the plans by their `Depends on:` field (topological order — a plan never launches before every plan it depends on has reached `Status: Implemented`, matching `spdd-implement` Step 3's dependency check). For each plan in that order, launch (or run inline) the `implement` phase. Context: the path to that one plan only — not the other plans, not the canvas beyond what `spdd-implement` itself reads.
+Order the plans by their `Depends on:` field (topological order — a plan never launches before every plan it depends on has reached `Status: Implemented`, matching `spdd-implement` Step 3's dependency check). For each plan in that order, launch the `implement` phase, per Step 2's decision for this phase. Context: the path to that one plan only — not the other plans, not the canvas beyond what `spdd-implement` itself reads.
 
 ### Step 8 — Verify phase
 
-Once every plan for the change is `Status: Implemented`, launch (or run inline) the `verify` phase per plan (or once, if the change was never split). Context: the path to the plan (or canvas) being verified.
+Once every plan for the change is `Status: Implemented`, launch the `verify` phase, per Step 2's decision for this phase, per plan (or once, if the change was never split). Context: the path to the plan (or canvas) being verified.
 
 If a verify run reports a non-trivial divergence (not a cosmetic gap), reopen the relevant checkpoint: bring the finding to the user in the foreground via `AskUserQuestion`, and if it requires touching the plan or canvas, loop back to the appropriate step (5, 6, or 7) instead of forcing the divergence closed silently.
 

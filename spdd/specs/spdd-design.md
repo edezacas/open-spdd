@@ -41,6 +41,7 @@ handed to `spdd-implement` as artificial separate plans.
 |------|------|-------|
 | `> Language: ...` note | `spdd-design/assets/template-plan.md` (line 4) | States the document is written in English, with no translation instruction |
 | Language defensive note | `spdd-design/SKILL.md` (Step 7 — "Generate the plan(s)") | Reminds the skill, at the point where it authors new prose of its own (not copied from the canvas), that this prose must also stay in English |
+| Dedicated-agent wrapper templates | `assets/agent-claude-code.md`, `assets/agent-opencode.md` | New (per-host phase subagents feature): thin bodies (load-and-follow + byte-identical never-block rule + report-back) installed by `spdd-install` to `~/.claude/agents/spdd-design.md` / `~/.config/opencode/agents/spdd-design.md`; Claude Code tools `Read, Glob, Grep, Write`, opencode `permission: {edit: allow, bash: deny}` — plan-file `Write` only, no shell |
 
 ---
 
