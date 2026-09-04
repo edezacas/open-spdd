@@ -82,6 +82,18 @@
         "When opencode is declined and Claude Code confirmed: no ~/.config/opencode/agents/spdd-*.md files are written, but all 4 ~/.claude/agents/spdd-*.md files and the 4 permissions.deny entries are written",
         "In both cases the final report states which host was installed and which was declined"
       ]
+    },
+    {
+      "id": 89,
+      "prompt": "/spdd-install",
+      "expected_output": "Running under Claude Code, with config.json holding both claude.models (tier aliases, e.g. implement: sonnet) and a flat top-level models key with real opencode values (e.g. implement: opencode-go/deepseek-v4-flash). Step 1 detects Claude Code and uses claude.models only for its own completeness guard. Step 3 writes the 4 Claude Code agent files (model: left as the static sonnet fallback from the template, never rewritten from either config section). Step 4 writes the 4 opencode agent files using the flat models key raw values verbatim (already provider-qualified, no alias translation needed) — never the claude.models tier-alias values, even though /spdd-install is itself running under Claude Code.",
+      "setup": "Set ~/.config/spdd/config.json to have claude.models complete with Claude Code tier aliases (e.g. sonnet/opus) AND a flat top-level models key complete with real opencode provider-qualified ids (e.g. opencode-go/deepseek-v4-flash) that differ from the claude.models values for at least one phase. Ensure CLAUDECODE=1. Ensure no dedicated agent files exist yet. Run /spdd-install and confirm both hosts.",
+      "assertions": [
+        "Each written opencode agent file's model: field and spdd-install:model-source marker both equal the flat models key's raw value for that phase, not the claude.models value",
+        "No opencode agent file contains an anthropic/* id derived from translating a claude.models tier alias when the flat models key already held a different, real opencode value for that phase",
+        "Each written Claude Code agent file keeps the template's static model: sonnet fallback, unaffected by either config section's actual values",
+        "Step 1's completeness guard check used claude.models only, and did not block or alter the flat models key based install for opencode"
+      ]
     }
   ]
 }

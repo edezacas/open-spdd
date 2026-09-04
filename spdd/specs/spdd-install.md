@@ -14,15 +14,19 @@ them in Dedicated mode without provisioning logic living inside the feature-buil
 
 **Scenario: config.json must already be complete**
 - WHEN `/spdd-install` runs and the applicable section of `~/.config/spdd/config.json` (`claude.models` under Claude Code, flat `models` otherwise) is missing, incomplete, or the file doesn't exist
-- THEN it stops immediately, points the user at `spdd-agent` to bootstrap the config first, and installs nothing — it never bootstraps, repairs, or migrates the config itself, and never opens or duplicates `spdd-agent/assets/model-bootstrap.md`. Completeness reuses `spdd-agent` Step 1's own six-key definition exactly
+- THEN it stops immediately, points the user at `spdd-agent` to bootstrap the config first, and installs nothing — it never bootstraps, repairs, or migrates the config itself, and never opens or duplicates `spdd-agent/assets/model-bootstrap.md`. Completeness reuses `spdd-agent` Step 1's own six-key definition exactly. This "applicable section" governs only the guard — it does not determine which config section feeds which *target* host's agent files (see the next scenario)
+
+**Scenario: target-host config section is independent of the running host**
+- WHEN Steps 3–5 read per-phase model values to write into a target host's agent files
+- THEN Claude Code target files always read `claude.models`; opencode target files (Step 4's initial write and Step 5's divergence check) always read the flat top-level `models` key — regardless of which host `/spdd-install` itself is running under. Running it from Claude Code does not mean opencode's values come from `claude.models`; they never do (`spdd-agent/assets/model-bootstrap.md`'s JSON shapes: the flat key is what opencode and every non-Claude-Code host actually reads/writes)
 
 **Scenario: fresh install writes both hosts, confirmed separately**
 - WHEN `/spdd-install` runs with no dedicated agent files installed yet
 - THEN it reads the 8 wrapper templates from `spdd-{canvas,design,implement,verify}/assets/`, then confirms Claude Code and opencode installation separately via `AskUserQuestion` (a user may only use one host) — declining one still lets the other proceed independently. Claude Code files are written verbatim from their templates (the static `model: sonnet` fallback is never rewritten); opencode files get `model:` and the `spdd-install:model-source` marker stamped in from config.json
 
 **Scenario: opencode model translation via a documented alias table**
-- WHEN writing or resyncing an opencode agent file's `model:` field
-- THEN a raw config.json value that already looks provider-qualified (contains `/`) is used verbatim; a Claude Code tier alias (`opus`/`sonnet`/`haiku`/`fable`) is translated through this skill's own alias→id table; an untranslatable value only warns, never fails, and falls back to writing the raw value verbatim. The `spdd-install:model-source` marker always holds the untranslated raw config.json value — never `model:` itself — so later divergence comparisons (here and in `spdd-agent`) never need to repeat this translation
+- WHEN writing or resyncing an opencode agent file's `model:` field, using the flat `models` key's raw value for that phase (never `claude.models`, per the scenario above)
+- THEN a raw value that already looks provider-qualified (contains `/`) is used verbatim; a Claude Code tier alias (`opus`/`sonnet`/`haiku`/`fable`) is translated through this skill's own alias→id table; an untranslatable value only warns, never fails, and falls back to writing the raw value verbatim. The `spdd-install:model-source` marker always holds the untranslated raw value — never `model:` itself — so later divergence comparisons (here and in `spdd-agent`) never need to repeat this translation
 
 **Scenario: resync detects and offers to remediate opencode divergence**
 - WHEN `/spdd-install` re-runs over an existing opencode agent file whose `spdd-install:model-source` marker differs from config.json's current raw value, or has no marker at all (pre-marker or hand-edited file)
@@ -38,7 +42,7 @@ them in Dedicated mode without provisioning logic living inside the feature-buil
 
 **Scenario: eval coverage**
 - WHEN this skill is considered complete
-- THEN `spdd-install/evals/evals.json` (evals 82–88) covers: fresh install, missing-config guard, idempotent resync including the tier-alias-vs-translated-id non-divergence case, opencode divergence remediation offer, missing-marker-as-divergence, `permissions.deny` merge non-destructiveness, and independent per-host confirmation (declining one doesn't block the other)
+- THEN `spdd-install/evals/evals.json` (evals 82–89) covers: fresh install, missing-config guard, idempotent resync including the tier-alias-vs-translated-id non-divergence case, opencode divergence remediation offer, missing-marker-as-divergence, `permissions.deny` merge non-destructiveness, independent per-host confirmation (declining one doesn't block the other), and target-host config section independence (opencode targets always read the flat `models` key even when running under Claude Code)
 
 ---
 
@@ -52,7 +56,7 @@ them in Dedicated mode without provisioning logic living inside the feature-buil
 | Dedicated phase agents (user-level, opencode) | `~/.config/opencode/agents/spdd-{canvas,design,implement,verify}.md` | Written only at runtime, confirmation-gated; carries `model:` + `spdd-install:model-source` marker, both derived from config.json |
 | Claude Code auto-delegation deny rules | `~/.claude/settings.json` (`permissions.deny`) | 4 entries, one per wrapper; merged non-destructively |
 | Alias → opencode model-id table | `spdd-install/SKILL.md` (Step 4) | Owned and maintained by this skill only — `spdd-agent`'s divergence check never needs a copy, since it only ever compares raw strings against the marker |
-| `spdd-install` eval coverage | `spdd-install/evals/evals.json` (evals 82–88) | Fresh install, missing-config guard, idempotent resync, divergence remediation, missing-marker handling, `permissions.deny` non-destructive merge, independent per-host confirmation |
+| `spdd-install` eval coverage | `spdd-install/evals/evals.json` (evals 82–89) | Fresh install, missing-config guard, idempotent resync, divergence remediation, missing-marker handling, `permissions.deny` non-destructive merge, independent per-host confirmation, target-host config section independence |
 
 ---
 
@@ -76,3 +80,4 @@ them in Dedicated mode without provisioning logic living inside the feature-buil
 - The one skill in the repo allowed to read another skill's `assets/` files directly (`spdd-{canvas,design,implement,verify}/assets/agent-*.md`) — cross-skill provisioning is its entire purpose.
 - The `spdd-install:model-source` marker, not the translated `model:` field, is always the value compared for divergence — both here and in `spdd-agent` Step 2 — so a raw-string comparison never needs the alias→id table repeated elsewhere.
 - A `permissions.deny` merge (or any resync write) never removes or alters an entry it didn't add.
+- The config section used for the Step 1 completeness guard (`claude.models` vs. flat `models`, based on the *running* host) is never the same decision as which section feeds a *target* host's agent files: Claude Code targets always read `claude.models`, opencode targets always read the flat `models` key, independent of which host is running `/spdd-install` (fixed 2026-09-04 after a live run wrote Claude Code's `claude.models` values into opencode's agent files).

@@ -43,7 +43,7 @@ spdd-sync/evals/evals.json            # clean refactor sync, behavior-change rej
 spdd-migrate/SKILL.md                 # One-time docs/prompts/ → spdd/changes|archive + docs/features/ → spdd/specs/ migration — /spdd-migrate
 spdd-migrate/evals/evals.json         # draft stays active, closed canvas archived, idempotency, hook rewrite, nothing to migrate, spec fold, orphan fold, fold idempotency, status-agnostic routing
 spdd-install/SKILL.md                 # installs/resyncs the 8 dedicated per-host phase agent files + Claude Code permissions.deny entries — /spdd-install
-spdd-install/evals/evals.json         # fresh install, resync, divergence remediation, missing-config guard, permissions.deny merge
+spdd-install/evals/evals.json         # fresh install, resync, divergence remediation, missing-config guard, permissions.deny merge, target-host config section independence
 evals/workspace/                      # gitignored — local eval results go here
 ```
 
