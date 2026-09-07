@@ -125,7 +125,7 @@ Compares the current code against `spdd/specs/<domain>.md` and updates Entities/
 
 ## Framework maintenance
 
-Conventions that keep the framework's own hygiene cheap. They came out of the [2026-09-02 framework assessment](REVIEW-2026-09-02-framework-assessment.md), which records the review's findings with evidence and what was implemented vs. deferred.
+Conventions that keep the framework's own hygiene cheap. They came out of a 2026-09-02 framework assessment, whose findings and outcomes are folded into `spdd/specs/general.md` and `spdd/specs/spdd-verify.md` — the living specs, not a standalone review doc.
 
 ### Eval results registry
 
