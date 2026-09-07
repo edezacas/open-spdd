@@ -195,9 +195,17 @@ Step 5, `spdd-verify` Step 9) were verified byte-identical after tightening.
 Manual re-check confirmed no rule, guardrail, or condition was dropped from
 any of the six files — only prose density changed.
 
-`spdd-agent/SKILL.md` is **not yet done** — deliberately left for last per
-the plan's risk ordering. Not committed yet either way.
+**7 of 7 done.** `spdd-agent/SKILL.md` rewritten last, as planned (worst
+benefit/risk ratio): 2699 → 2310 words in `## Instructions` (-14%, the
+smallest reduction of the seven, matching the structural-complexity
+prediction). Every branch (host detection, isolated/inline mode,
+foreground/background, direct/complete routing, checkpoint gates) preserved;
+the never-block rule block stays byte-identical. Version 2.1 → 2.2.
 
-**Eval validation: complete.** Full suite (all 60 evals across the 6 rewritten
-skills, 214/214 assertions) run and passed — 0 regressions. Details in
-`evals/workspace/iteration-3-skill-style-lightening/results.md`.
+Full eval suite validation (all 60 evals across the other 6 skills, 214/214
+assertions) ran and passed — 0 regressions. Details in
+`evals/workspace/iteration-3-skill-style-lightening/results.md`. For
+`spdd-agent` specifically (35 evals, its own suite), the user opted to skip
+the harness run and rely on manual review instead — done via a full re-read
+confirming every conditional branch and the verbatim never-block rule
+survived intact.
