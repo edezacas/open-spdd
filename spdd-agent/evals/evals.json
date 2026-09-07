@@ -4,10 +4,10 @@
     {
       "id": 31,
       "prompt": "usa spdd-agent para ver qué modelo tiene configurado cada fase",
-      "expected_output": "The skill classifies this as a config request (Step 0). Step 1 first detects the host (the new 'Detect Claude Code host' sub-step). If Claude Code is detected, it reports the six current phase models from the `claude.models` namespace (bootstrapping into that namespace first if the file doesn't exist yet). If Claude Code is not detected (or detection is inconclusive), it reports them from the flat top-level `models` key instead, exactly as before. Either way it stops — it never starts the feature flow. If the file happens to contain both a flat `models` key and a `claude` namespace, the Claude-Code branch reports only from `claude`, never merging or falling back to the flat key. Since this is a pure read of an already-complete config, `spdd-agent/assets/model-bootstrap.md` is never opened.",
-      "setup": "Ensure ~/.config/spdd/config.json already has all six phase values complete in the applicable section (`claude.models` under Claude Code, flat `models` otherwise) before running.",
+      "expected_output": "The skill classifies this as a config request (Step 0). Step 1 first detects the host (the new 'Detect Claude Code host' sub-step). If Claude Code is detected, it reports the four current phase models from the `claude.models` namespace (bootstrapping into that namespace first if the file doesn't exist yet). If Claude Code is not detected (or detection is inconclusive), it reports them from the flat top-level `models` key instead, exactly as before. Either way it stops — it never starts the feature flow. If the file happens to contain both a flat `models` key and a `claude` namespace, the Claude-Code branch reports only from `claude`, never merging or falling back to the flat key. Since this is a pure read of an already-complete config, `spdd-agent/assets/model-bootstrap.md` is never opened.",
+      "setup": "Ensure ~/.config/spdd/config.json already has all four phase values complete in the applicable section (`claude.models` under Claude Code, flat `models` otherwise) before running.",
       "assertions": [
-        "The response lists a model for all six phases: canvas, design, implement, verify, sync, migrate",
+        "The response lists a model for all four phases: canvas, design, implement, verify",
         "The values reported come from the namespace matching the detected host (`claude.models` under Claude Code, flat `models` otherwise) — never a mix of both",
         "No file is created under spdd/changes/",
         "No canvas/design/implement/verify subagent is launched",
@@ -17,11 +17,11 @@
     {
       "id": 32,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "On first run with no existing config, Step 1 first detects the host via the new 'Detect Claude Code host' sub-step (the CLAUDECODE env check), then the completeness check finds the file doesn't exist (first-run bootstrap case) — which now routes through `spdd-agent/assets/first-run.md`'s onboarding (guide shown before the model questions, optional dedicated-layer offer after) — and hands off to `spdd-agent/assets/model-bootstrap.md`, which is what resolves the model for all six phases via AskUserQuestion (grouped into 1-2 calls) before touching the feature request at all. If Claude Code is detected, it writes the nested `{\"claude\":{\"models\":{...}}}` shape. If Claude Code is not detected — including when detection is inconclusive (env var absent, ambiguous, or the check itself errors) — it writes the flat top-level `{\"models\":{...}}` shape exactly as before; a wrong guess would risk corrupting the file for whichever host is actually running, so an inconclusive result always falls back to flat.",
+      "expected_output": "On first run with no existing config, Step 1 first detects the host via the new 'Detect Claude Code host' sub-step (the CLAUDECODE env check), then the completeness check finds the file doesn't exist (first-run bootstrap case) — which now routes through `spdd-agent/assets/first-run.md`'s onboarding (guide shown before the model questions) — and hands off to `spdd-agent/assets/model-bootstrap.md`, which is what resolves the model for all four phases via AskUserQuestion (grouped into 1-2 calls) before touching the feature request at all. If Claude Code is detected, it writes the nested `{\"claude\":{\"models\":{...}}}` shape. If Claude Code is not detected — including when detection is inconclusive (env var absent, ambiguous, or the check itself errors) — it writes the flat top-level `{\"models\":{...}}` shape exactly as before; a wrong guess would risk corrupting the file for whichever host is actually running, so an inconclusive result always falls back to flat.",
       "setup": "Ensure ~/.config/spdd/config.json does not exist before running. Exercise this once with Claude Code detected (CLAUDECODE=1) and once with a simulated non-Claude-Code / inconclusive host (CLAUDECODE unset or the detection check simulated as failing).",
       "assertions": [
-        "When Claude Code is detected: ~/.config/spdd/config.json exists after the run with a top-level `claude.models` object holding all six phases set to one of opus/sonnet/haiku/fable, and no flat top-level `models` key is created",
-        "When Claude Code is not detected or detection is inconclusive: ~/.config/spdd/config.json exists after the run with a flat top-level `models` object holding all six phases, and no `claude` key is created",
+        "When Claude Code is detected: ~/.config/spdd/config.json exists after the run with a top-level `claude.models` object holding all four phases set to one of opus/sonnet/haiku/fable, and no flat top-level `models` key is created",
+        "When Claude Code is not detected or detection is inconclusive: ~/.config/spdd/config.json exists after the run with a flat top-level `models` object holding all four phases, and no `claude` key is created",
         "In both branches, the model selection is resolved via AskUserQuestion before any file is written under spdd/changes/",
         "In both branches, the canvas phase only starts once the config file exists",
         "In both branches, spdd-agent/assets/model-bootstrap.md is read before any AskUserQuestion for model selection, since the completeness check found no config file (first-run bootstrap case)"
@@ -30,12 +30,12 @@
     {
       "id": 33,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "Step 1's existing-file branch first detects the host, then runs the completeness check against the matching section. (a) Claude Code detected, `claude.models` already has all six non-empty values: the completeness check finds it complete, takes the fast path, reads and proceeds — nothing asked, `spdd-agent/assets/model-bootstrap.md` is never opened. (b) Claude Code detected, one of the six `claude.models` values is missing/empty: the completeness check finds it incomplete, `spdd-agent/assets/model-bootstrap.md` is read, and only that phase is re-asked via AskUserQuestion (same repair behavior as today's flat config), then written back into `claude.models` — the other five values are untouched. A non-empty free-text identifier (even one that isn't opus/sonnet/haiku/fable) is accepted as-is. (c) Claude Code detected, the file has a flat top-level `models` key but no `claude` namespace: the completeness check classifies this as the migration case (not complete, since `claude.models` itself is absent), `spdd-agent/assets/model-bootstrap.md` is read, and the skill does not silently read the flat key as if it were Claude-Code-scoped; instead it proposes, via a real foreground AskUserQuestion (writing the file is a side effect), copying the flat key's six values into a new `claude.models` namespace, and only writes once confirmed, leaving the original flat key untouched. (d) Host is not Claude Code: the flat top-level `models` key is read/repaired directly, exactly as before, with no migration proposed and no `claude` key touched — `spdd-agent/assets/model-bootstrap.md` is read only if that flat section itself is incomplete.",
+      "expected_output": "Step 1's existing-file branch first detects the host, then runs the completeness check against the matching section. (a) Claude Code detected, `claude.models` already has all four non-empty values: the completeness check finds it complete, takes the fast path, reads and proceeds — nothing asked, `spdd-agent/assets/model-bootstrap.md` is never opened. (b) Claude Code detected, one of the four `claude.models` values is missing/empty: the completeness check finds it incomplete, `spdd-agent/assets/model-bootstrap.md` is read, and only that phase is re-asked via AskUserQuestion (same repair behavior as today's flat config), then written back into `claude.models` — the other three values are untouched. A non-empty free-text identifier (even one that isn't opus/sonnet/haiku/fable) is accepted as-is. (c) Claude Code detected, the file has a flat top-level `models` key but no `claude` namespace: the completeness check classifies this as the migration case (not complete, since `claude.models` itself is absent), `spdd-agent/assets/model-bootstrap.md` is read, and the skill does not silently read the flat key as if it were Claude-Code-scoped; instead it proposes, via a real foreground AskUserQuestion (writing the file is a side effect), copying the flat key's four values into a new `claude.models` namespace, and only writes once confirmed, leaving the original flat key untouched. (d) Host is not Claude Code: the flat top-level `models` key is read/repaired directly, exactly as before, with no migration proposed and no `claude` key touched — `spdd-agent/assets/model-bootstrap.md` is read only if that flat section itself is incomplete.",
       "setup": "Prepare four config-file variants and run once against each: (a) `claude.models` complete, Claude Code detected; (b) `claude.models` with one empty/missing phase (e.g. canvas), Claude Code detected; (c) flat `models` complete but no `claude` key, Claude Code detected; (d) flat `models` complete, non-Claude-Code host detected.",
       "assertions": [
-        "(a) No AskUserQuestion is called; the six values used for Steps 4-8 match `claude.models` exactly; spdd-agent/assets/model-bootstrap.md is not read (fast path)",
+        "(a) No AskUserQuestion is called; the four values used for Steps 4-8 match `claude.models` exactly; spdd-agent/assets/model-bootstrap.md is not read (fast path)",
         "(b) AskUserQuestion is called only for the phase with the empty/missing value in `claude.models`; the other five values and the top-level structure are unchanged after the run; spdd-agent/assets/model-bootstrap.md is read before that AskUserQuestion call",
-        "(c) The skill does not read the flat `models` key as Claude-Code-scoped without asking first; spdd-agent/assets/model-bootstrap.md is read (migration case); AskUserQuestion is called before any write; after confirmation, `claude.models` exists with the flat key's six values copied over, and the original flat `models` key is still present and byte-for-byte unchanged",
+        "(c) The skill does not read the flat `models` key as Claude-Code-scoped without asking first; spdd-agent/assets/model-bootstrap.md is read (migration case); AskUserQuestion is called before any write; after confirmation, `claude.models` exists with the flat key's four values copied over, and the original flat `models` key is still present and byte-for-byte unchanged",
         "(d) The flat `models` key is read/repaired directly (complete in this variant, so spdd-agent/assets/model-bootstrap.md is not read), no AskUserQuestion about migration is raised, and no `claude` key is created",
         "If a config file has both a flat `models` key and a `claude` namespace already present (partially migrated or hand-edited) and Claude Code is detected, the values used come only from `claude` — the flat key is never merged, read as a fallback, or deleted"
       ]
@@ -44,7 +44,7 @@
       "id": 34,
       "prompt": "hay que implementar una función que calcule el descuento aplicable a un pedido según su importe, sin que existan reglas de descuento documentadas todavía",
       "expected_output": "The canvas phase runs as a background subagent with no AskUserQuestion available. It never blocks: it takes the suggested default for the undocumented discount-rule decision and records it as a '⚠️ Confirm:' line, and it does not install the SPDD guard hook (a side-effect action) if missing, leaving that as a separate '⚠️ Confirm:' instead.",
-      "setup": "Ensure ~/.config/spdd/config.json already has valid values for all six phases in the namespace matching the detected host (`claude.models` under Claude Code) (skip bootstrap), and the target project has no .claude/settings.local.json.",
+      "setup": "Ensure ~/.config/spdd/config.json already has valid values for all four phases in the namespace matching the detected host (`claude.models` under Claude Code) (skip bootstrap), and the target project has no .claude/settings.local.json.",
       "assertions": [
         "canvas.md is written and contains at least one '⚠️ Confirm:' line for the undocumented discount-rule decision",
         ".claude/settings.local.json is not created or modified during the canvas phase",
@@ -68,7 +68,7 @@
       "id": 36,
       "prompt": "hay que implementar [feature with two parts, where part B needs a field/entity only introduced by part A]",
       "expected_output": "The design phase produces plan-01 and plan-02 with plan-02 declaring 'Depends on: plan-01'. The skill launches plan-01's implement phase first, waits for it to reach 'Status: Implemented', and only then launches plan-02's implement phase.",
-      "setup": "Run through canvas and design so that plan-02 legitimately depends on plan-01 (mirrors spdd-design eval 13's setup). Ensure ~/.config/spdd/config.json already has valid values for all six phases in the applicable section before running, so Step 1 takes the fast path.",
+      "setup": "Run through canvas and design so that plan-02 legitimately depends on plan-01 (mirrors spdd-design eval 13's setup). Ensure ~/.config/spdd/config.json already has valid values for all four phases in the applicable section before running, so Step 1 takes the fast path.",
       "assertions": [
         "plan-01 reaches 'Status: Implemented' before plan-02's implement phase is launched",
         "plan-02's implement phase is never launched while plan-01 is not yet 'Status: Implemented'",
@@ -79,7 +79,7 @@
       "id": 37,
       "prompt": "hay que implementar [a feature already carried through canvas, design, and implement, where the implementation ends up diverging non-trivially from the plan]",
       "expected_output": "When the verify phase reports a non-trivial divergence between the plan and the actual code, the skill brings it to the user via a real foreground AskUserQuestion instead of silently forcing 'Status: Verified' or archiving the change.",
-      "setup": "Same style of setup as spdd-implement eval 6: implement a plan, then introduce a discrepancy between the plan/canvas and the real code before the verify phase runs. Ensure ~/.config/spdd/config.json already has valid values for all six phases in the applicable section before running, so Step 1 takes the fast path.",
+      "setup": "Same style of setup as spdd-implement eval 6: implement a plan, then introduce a discrepancy between the plan/canvas and the real code before the verify phase runs. Ensure ~/.config/spdd/config.json already has valid values for all four phases in the applicable section before running, so Step 1 takes the fast path.",
       "assertions": [
         "The plan/canvas is not marked 'Status: Verified' while the divergence is unresolved",
         "Nothing is folded into spdd/specs/ or moved to spdd/archive/ while the divergence is open",
@@ -91,7 +91,7 @@
       "id": 38,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
       "expected_output": "On a host with no subagent-launching mechanism available, the skill runs each phase by invoking the phase skill directly in its own context (inline mode) instead of launching an isolated subagent. Orchestration and the checkpoint gate stay the same; only isolation and per-phase model selection are lost.",
-      "setup": "Simulate a host with no mechanism to launch an isolated subagent at all. Ensure ~/.config/spdd/config.json already has valid values for all six phases in the applicable section before running, so Step 1 takes the fast path.",
+      "setup": "Simulate a host with no mechanism to launch an isolated subagent at all. Ensure ~/.config/spdd/config.json already has valid values for all four phases in the applicable section before running, so Step 1 takes the fast path.",
       "assertions": [
         "Each phase still produces the same artifacts as isolated mode (canvas.md, plans/*.md, code changes)",
         "No subagent/background launch is invoked for any phase",
@@ -183,7 +183,7 @@
     {
       "id": 46,
       "prompt": "hay que añadir un sistema de caché distribuido que use Redis para mejorar la performance de las consultas; toca varias partes del sistema (config, db layer, API endpoints, tests)",
-      "expected_output": "The routing decision (Step 0) resolves to complete route (3+ files, architectural ambiguity) before Step 1 runs. Since ~/.config/spdd/config.json does not exist yet, first-run model bootstrap proceeds normally afterward, exactly as it did before routing existed — now wrapped in the first-run onboarding (guide before the model questions, dedicated-layer offer after), which does not change the routing-precedes-bootstrap order.",
+      "expected_output": "The routing decision (Step 0) resolves to complete route (3+ files, architectural ambiguity) before Step 1 runs. Since ~/.config/spdd/config.json does not exist yet, first-run model bootstrap proceeds normally afterward, exactly as it did before routing existed — now wrapped in the first-run onboarding (guide before the model questions), which does not change the routing-precedes-bootstrap order.",
       "setup": "Ensure ~/.config/spdd/config.json does not exist before running (first run, no prior bootstrap).",
       "assertions": [
         "The routing decision is resolved (implicitly, by the flow proceeding to canvas/bootstrap) before any AskUserQuestion for model bootstrap appears",
@@ -195,7 +195,7 @@
       "id": 47,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
       "expected_output": "Before launching the canvas phase, the skill silently resolves Isolated vs. Inline mode (Step 2) and now surfaces that choice as a visible '[automatic decision]' line, per the general decision-transparency rule — distinct from the '⚠️ Confirm:' lines reserved for blocking, side-effecting, or business-ambiguous decisions.",
-      "setup": "Ensure ~/.config/spdd/config.json already has valid values for all six phases (skip bootstrap noise), and the host has a subagent-launching mechanism available (isolated mode applies).",
+      "setup": "Ensure ~/.config/spdd/config.json already has valid values for all four phases (skip bootstrap noise), and the host has a subagent-launching mechanism available (isolated mode applies).",
       "assertions": [
         "The response contains a line starting with '[automatic decision]' before the canvas phase is launched",
         "That line reports the Isolated-mode choice and a brief reason (host exposes a subagent mechanism)",
@@ -206,38 +206,38 @@
       "id": 48,
       "prompt": "usa spdd-agent para ver qué modelo tiene configurado cada fase",
       "expected_output": "Step 1 detects Claude Code and reads ~/.config/spdd/config.json, but the file's top-level shape matches neither the flat `{\"models\": {...}}` schema nor the nested `{\"claude\": {\"models\": {...}}}` schema (e.g. a hand-edited file with a `claude` key that isn't an object, or a `models` key nested one level too deep). The lightweight completeness check cannot confirm the applicable section is complete from this shape, so it classifies the run as malformed and reads `spdd-agent/assets/model-bootstrap.md`. The skill does not treat this as a hard failure or overwrite the file wholesale: per the canvas's Safeguards ('user has already hand-edited the file to something that is neither valid flat nor valid nested shape'), it treats it the same as today's missing/empty-value repair path — re-asking only for the phase values it cannot resolve from the file, via AskUserQuestion, while leaving any other unrelated valid top-level keys in the file untouched.",
-      "setup": "Create ~/.config/spdd/config.json with a top-level shape that is neither valid flat nor valid claude-namespaced JSON for the six phase values (e.g. `{\"claude\": \"sonnet\", \"other_tool\": {\"unrelated\": true}}`), and run with CLAUDECODE=1 so Claude Code is detected.",
+      "setup": "Create ~/.config/spdd/config.json with a top-level shape that is neither valid flat nor valid claude-namespaced JSON for the four phase values (e.g. `{\"claude\": \"sonnet\", \"other_tool\": {\"unrelated\": true}}`), and run with CLAUDECODE=1 so Claude Code is detected.",
       "assertions": [
-        "The skill does not crash or silently fabricate all six values without asking",
+        "The skill does not crash or silently fabricate all four values without asking",
         "spdd-agent/assets/model-bootstrap.md is read before any AskUserQuestion call, since the completeness check cannot confirm the malformed section is complete",
         "AskUserQuestion is called only for the phase values that cannot be resolved from the malformed file, not for values that happen to already be present and valid",
         "Unrelated top-level keys already present in the file (e.g. `other_tool`) are still present and unchanged after the run",
-        "After the run, ~/.config/spdd/config.json has a well-formed `claude.models` section with all six phases set to non-empty values"
+        "After the run, ~/.config/spdd/config.json has a well-formed `claude.models` section with all four phases set to non-empty values"
       ]
     },
     {
       "id": 67,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "On an ordinary run where ~/.config/spdd/config.json already has the applicable section (`claude.models` under Claude Code, flat `models` otherwise) complete with all six non-empty string values, Step 1's completeness check classifies the run as the fast path: it reads the six values directly and proceeds to Step 2 without ever opening `spdd-agent/assets/model-bootstrap.md` and without any `AskUserQuestion` call for model selection.",
-      "setup": "Ensure ~/.config/spdd/config.json exists with the applicable section already complete (all six of canvas/design/implement/verify/sync/migrate present as non-empty strings) before running.",
+      "expected_output": "On an ordinary run where ~/.config/spdd/config.json already has the applicable section (`claude.models` under Claude Code, flat `models` otherwise) complete with all four non-empty string values, Step 1's completeness check classifies the run as the fast path: it reads the four values directly and proceeds to Step 2 without ever opening `spdd-agent/assets/model-bootstrap.md` and without any `AskUserQuestion` call for model selection.",
+      "setup": "Ensure ~/.config/spdd/config.json exists with the applicable section already complete (all four of canvas/design/implement/verify present as non-empty strings) before running.",
       "assertions": [
         "spdd-agent/assets/model-bootstrap.md is not read at any point during this run",
         "No AskUserQuestion call for model selection occurs",
-        "The six values used for Steps 4-8 match the values already present in the applicable section, unchanged",
+        "The four values used for Steps 4-8 match the values already present in the applicable section, unchanged",
         "The canvas phase is launched without any delay for model configuration"
       ]
     },
     {
       "id": 68,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "~/.config/spdd/config.json exists but is not valid JSON (or is a zero-byte file). Step 1's completeness check cannot parse it, so it cannot confirm the applicable section is complete — this is treated the same as the malformed-shape case, not as 'file doesn't exist' and not silently overwritten. The skill reads `spdd-agent/assets/model-bootstrap.md`, warns the user that the existing file couldn't be parsed, and asks for all six values via AskUserQuestion (since nothing in the file can be trusted) before writing over it.",
+      "expected_output": "~/.config/spdd/config.json exists but is not valid JSON (or is a zero-byte file). Step 1's completeness check cannot parse it, so it cannot confirm the applicable section is complete — this is treated the same as the malformed-shape case, not as 'file doesn't exist' and not silently overwritten. The skill reads `spdd-agent/assets/model-bootstrap.md`, warns the user that the existing file couldn't be parsed, and asks for all four values via AskUserQuestion (since nothing in the file can be trusted) before writing over it.",
       "setup": "Create ~/.config/spdd/config.json containing invalid JSON (e.g. truncated or syntactically broken content), or as a zero-byte empty file. Exercise both variants.",
       "assertions": [
         "The skill does not crash and does not silently treat the file as absent",
         "spdd-agent/assets/model-bootstrap.md is read before any AskUserQuestion call",
         "The user is warned that the existing config file could not be parsed, before it is overwritten",
-        "AskUserQuestion is called for all six phase values, since nothing in the unparseable file can be trusted",
-        "After the run, ~/.config/spdd/config.json is valid JSON with the applicable section holding all six phases as non-empty strings"
+        "AskUserQuestion is called for all four phase values, since nothing in the unparseable file can be trusted",
+        "After the run, ~/.config/spdd/config.json is valid JSON with the applicable section holding all four phases as non-empty strings"
       ]
     },
     {
@@ -275,248 +275,140 @@
     {
       "id": 72,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "On a host whose subagent mechanism exists but accepts no model override (e.g. opencode's Task tool with a subagent_type but no agent/model field), Step 2 still chooses Isolated mode — isolation no longer depends on model override. Each phase launches as a subagent at the host's default model, and the transparency line states that per-phase model selection is lost. When the subagent's report returns synchronously as the tool result, the orchestration continues immediately with the next step (checkpoint gate, then next phase).",
-      "setup": "Simulate a host with a subagent-launching mechanism that does not accept a model override. Ensure ~/.config/spdd/config.json already has valid values for all six phases in the applicable section before running, so Step 1 takes the fast path.",
+      "expected_output": "Under opencode, Step 2 unconditionally classifies the host as Isolated-mode-without-override — per opencode's own documentation, its Task tool has no per-invocation model field at all, so an ad-hoc subagent always runs at the model of the primary agent that invoked it. This is not inferred or probed at runtime; it's a fixed fact about the host. Each phase launches as a subagent at the conversation's own model, and the transparency line states plainly that every phase runs at that model, never implying per-phase selection is in effect. When the subagent's report returns synchronously as the tool result, the orchestration continues immediately with the next step (checkpoint gate, then next phase).",
+      "setup": "Run under opencode (or any host confirmed to have no per-call model override). Ensure ~/.config/spdd/config.json already has valid values for all four phases in the applicable section before running, so Step 1 takes the fast path.",
       "assertions": [
         "Isolated mode is chosen — a subagent is launched for each phase, not an inline Skill call",
-        "The '[automatic decision]' line reports Isolated mode without model override and states per-phase model selection is lost",
+        "No `model` field is ever passed to the Task tool for any phase",
+        "The '[automatic decision]' line states plainly that opencode has no per-call model override and every phase runs at the conversation's own model — it never claims per-phase model selection is in effect",
         "No Inline-mode transparency line appears and no phase runs inline in the current context",
         "After each phase's report arrives, the orchestration continues to the next step without ending the flow or waiting for a further user prompt"
       ]
     },
     {
-      "id": 73,
-      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "All four dedicated agent files (spdd-canvas, spdd-design, spdd-implement, spdd-verify) are present in the host's agent directory. Step 2 selects Dedicated mode for every phase, displaying its own '[automatic decision] Dedicated mode' line before each launch. Step 3-dedicated builds the call (Agent with subagent_type: \"spdd-<phase>\" on Claude Code, or Task with subagent_type: \"spdd-<phase>\" on opencode) with phase context only — no restated never-block rule or report contract in the prompt. Each phase reports back per its own contract, and the Step 5/6/7/8 checkpoint gates still run exactly as before.",
-      "setup": "Install all four dedicated agent files for the current host (e.g. via a stub/fixture equivalent to what spdd-install would write) before running. Ensure ~/.config/spdd/config.json already has valid values for all six phases so Step 1 takes the fast path.",
-      "assertions": [
-        "A '[automatic decision] Dedicated mode' line appears before each of the four phase launches",
-        "Every phase is invoked with subagent_type: \"spdd-<phase>\", not a generic ad-hoc subagent_type",
-        "The Step 5 checkpoint gate still runs after canvas, and Steps 6/7/8 still run in order",
-        "The dedicated-mode prompt for each phase does not restate the never-block rule text or the report-contract instructions verbatim — only phase context"
-      ]
-    },
-    {
-      "id": 74,
-      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "No dedicated spdd-<phase> agent file exists for any phase on the current host. Step 2 never selects Dedicated mode for any phase; every phase falls back to Step 3 (Isolated mode) or Step 3-alt (Inline mode) exactly as it would have before Dedicated mode existed — byte-identical behavior.",
-      "setup": "Ensure no ~/.claude/agents/spdd-*.md or ~/.config/opencode/agents/spdd-*.md files exist. Ensure ~/.config/spdd/config.json already has valid values for all six phases.",
-      "assertions": [
-        "No '[automatic decision] Dedicated mode' line appears at any point",
-        "Every phase is invoked with the generic ad-hoc subagent_type (e.g. general-purpose on Claude Code), never subagent_type: \"spdd-<phase>\"",
-        "The Step 3 prompt for each phase still includes the never-block rule verbatim and the report-contract instruction, exactly as in the pre-Dedicated-mode contract"
-      ]
-    },
-    {
-      "id": 75,
-      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "The host has no subagent-launching mechanism at all (same setup as the existing inline-mode eval). Even though the host has no agent-file directory concept to speak of, Step 2 correctly never selects Dedicated mode (there is nothing to detect), and every phase runs inline via Step 3-alt exactly as it did before Dedicated mode existed.",
-      "setup": "Simulate a host with no mechanism to launch an isolated subagent at all. Ensure ~/.config/spdd/config.json already has valid values for all six phases.",
-      "assertions": [
-        "No '[automatic decision] Dedicated mode' line appears",
-        "Every phase runs via direct Skill(<phase>) invocation in the current context, not a subagent call",
-        "The Inline-mode transparency line still appears exactly as before"
-      ]
-    },
-    {
-      "id": 76,
-      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "Running under Claude Code with a dedicated spdd-implement agent file installed (frontmatter model: sonnet as its static fallback), Step 3-dedicated's Agent call passes model: taken from config.json's current implement value (e.g. opus) as the per-invocation param. The subagent actually runs at the config.json value, not the frontmatter's sonnet fallback, per Claude Code's documented per-invocation-overrides-frontmatter precedence.",
-      "setup": "Install the dedicated spdd-implement Claude Code agent file with model: sonnet in its frontmatter. Set config.json's implement value to a different model (e.g. opus). Run under Claude Code (CLAUDECODE=1).",
-      "assertions": [
-        "The Agent tool call for the implement phase includes model: matching config.json's current implement value, not the agent file's frontmatter value",
-        "No '[automatic decision]' line claims the frontmatter fallback was used when a per-invocation override was available"
-      ]
-    },
-    {
-      "id": 77,
-      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "Running under opencode with a dedicated spdd-verify agent file installed, whose body carries `<!-- spdd-install:model-source=sonnet -->` while config.json's current verify value is `opus` — a genuine divergence. Before launching the verify phase, Step 2 reports the divergence via a transparency line pointing at /spdd-install to resync, then proceeds anyway with the agent file's own frontmatter model (the Task tool has no model field to override it with). The agent file itself is never rewritten by spdd-agent.",
-      "setup": "Install the dedicated spdd-verify opencode agent file with marker `spdd-install:model-source=sonnet` and frontmatter model translated from sonnet, while config.json's current verify value is opus. Run under opencode (no CLAUDECODE).",
-      "assertions": [
-        "A transparency line reports the model divergence between the marker and config.json's current raw value, and mentions /spdd-install as the way to resync",
-        "The verify phase still launches — the divergence is reported, not treated as a blocking error",
-        "The dedicated agent file on disk is byte-for-byte unchanged after the run — spdd-agent never rewrites it",
-        "The Task call for the verify phase carries no model field (opencode's Task tool has none) — the model in effect is whatever the agent file's frontmatter already holds"
-      ]
-    },
-    {
-      "id": 78,
-      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "Running under opencode with a dedicated spdd-canvas agent file whose body carries `<!-- spdd-install:model-source=sonnet -->` (a Claude Code tier alias, matching config.json's current canvas value of sonnet exactly) while the frontmatter model: field holds a different-looking translated provider-qualified id (e.g. anthropic/claude-sonnet-5). Because the comparison is marker-vs-raw-config-value (not model:-vs-raw-config-value), this is correctly recognized as no divergence at all — the translated model: field looking different from the raw config.json string is expected and never itself reported as a mismatch.",
-      "setup": "Install the dedicated spdd-canvas opencode agent file with marker `spdd-install:model-source=sonnet` and frontmatter `model: anthropic/claude-sonnet-5`. Set config.json's current canvas value to the tier alias `sonnet` (matching the marker exactly). Run under opencode.",
-      "assertions": [
-        "No divergence transparency line appears for the canvas phase",
-        "The comparison performed is explicitly marker-vs-config.json-raw-value, never frontmatter model:-vs-config.json-raw-value",
-        "The canvas phase launches via Dedicated mode without any warning about the model"
-      ]
-    },
-    {
-      "id": 79,
-      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "A dedicated spdd-design agent file exists on the current host, but its frontmatter is unparseable (e.g. broken YAML). Step 2 treats this the same as an absent file: it warns, skips Dedicated mode for the design phase only, and falls back to Step 3/3-alt for that phase — the flow never blocks or crashes. Every other phase's dedicated-mode detection is unaffected by this one bad file.",
-      "setup": "Install a dedicated spdd-design agent file with unparseable/malformed frontmatter (or a missing required field, or an empty body) for the current host; leave the other three phases' dedicated files valid. Ensure config.json already has valid values for all six phases.",
-      "assertions": [
-        "A warning is surfaced about the malformed spdd-design agent file",
-        "The design phase runs via Step 3 or Step 3-alt (ad-hoc), not Dedicated mode",
-        "The flow does not stop, crash, or block on the malformed file",
-        "The other three phases (canvas, implement, verify) still use Dedicated mode normally if their own agent files are valid"
-      ]
-    },
-    {
-      "id": 80,
-      "prompt": "un agente que no es spdd-agent intenta usar el subagente spdd-implement para una tarea no relacionada con el flujo SPDD, con los 8 wrappers y las 4 entradas permissions.deny ya instalados",
-      "expected_output": "With the dedicated agent files and (on Claude Code) the 4 permissions.deny entries already installed, a primary agent working on unrelated work does not proactively pick spdd-implement (or any spdd-<phase> agent) for that work: the description's forbid-auto-delegation wording discourages it on both hosts, opencode's hidden: true keeps it out of the @ menu, and Claude Code's permissions.deny hard-blocks any Agent(spdd-implement) call from outside spdd-agent's own orchestration.",
-      "setup": "Install all 8 dedicated agent files and, for Claude Code, the 4 permissions.deny entries in ~/.claude/settings.json. Simulate a primary agent, outside spdd-agent's flow, considering delegation for an unrelated task.",
-      "assertions": [
-        "The primary agent does not select spdd-implement (or any spdd-<phase> agent) to delegate the unrelated task",
-        "On Claude Code, an attempted Agent(spdd-implement) call from outside spdd-agent's orchestration is blocked by permissions.deny",
-        "On opencode, spdd-implement does not appear as a selectable option in the @ menu"
-      ]
-    },
-    {
-      "id": 81,
-      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "Only the Claude Code dedicated agent files are installed (~/.claude/agents/spdd-*.md); no opencode agent files exist. Running under Claude Code, every phase uses Dedicated mode. Running the same scenario under opencode (only opencode files installed, no Claude Code files), every phase uses Dedicated mode there instead — and running under whichever host has no files installed always falls back to Step 3/3-alt for that host, with no cross-host leakage in either direction.",
-      "setup": "Exercise this twice: (a) only ~/.claude/agents/spdd-*.md installed, run under Claude Code (CLAUDECODE=1); (b) only ~/.config/opencode/agents/spdd-*.md installed, run under opencode (no CLAUDECODE). Ensure config.json already has valid values for all six phases in both runs.",
-      "assertions": [
-        "(a) Every phase uses Dedicated mode under Claude Code",
-        "(b) Every phase uses Dedicated mode under opencode",
-        "Detection only ever checks the current host's own agent directory — a Claude Code run never inspects ~/.config/opencode/agents/, and an opencode run never inspects ~/.claude/agents/"
-      ]
-    },
-    {
       "id": 90,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "First run (~/.config/spdd/config.json absent): Step 1 routes the file-doesn't-exist case to spdd-agent/assets/first-run.md. The onboarding shows the guide (what the canvas → design → implement → verify flow does, that it pauses at foreground checkpoints, where artifacts are written) before any model-choice question, then hands off to model-bootstrap.md's first-run bootstrap, which resolves the six phase models via AskUserQuestion. Since the host exposes a subagent mechanism and the dedicated spdd-<phase>.md files are not all well-formed, the dedicated-layer offer fires: one AskUserQuestion (run /spdd-install now?, yes recommended). On acceptance, spdd-install runs in the foreground — its own per-host confirmations are the only write gate; spdd-agent performs none of the installation writes — and the flow then continues to Step 2, launching later phases in Dedicated mode where their files are now present. The guide and per-phase one-liners appear only in the orchestrator's conversation, never inside canvas.md or any plan.",
-      "setup": "Ensure ~/.config/spdd/config.json does not exist. Run on a host with a subagent mechanism (e.g. Claude Code with the Agent tool, CLAUDECODE=1), and ensure not all four dedicated spdd-<phase>.md files in that host's agent directory are well-formed (e.g. none installed, or only some).",
+      "expected_output": "First run (~/.config/spdd/config.json absent): Step 1 routes the file-doesn't-exist case to spdd-agent/assets/first-run.md. The onboarding shows the guide (what the canvas → design → implement → verify flow does, that it pauses at foreground checkpoints, where artifacts are written) before any model-choice question, then hands off to model-bootstrap.md's first-run bootstrap, which resolves the four phase models via AskUserQuestion. The flow then continues to Step 2 (subagent capability detection) and launches the canvas phase. The guide and per-phase one-liners appear only in the orchestrator's conversation, never inside canvas.md or any plan.",
+      "setup": "Ensure ~/.config/spdd/config.json does not exist. Run on a host with a subagent mechanism (e.g. Claude Code with the Agent tool, CLAUDECODE=1).",
       "assertions": [
         "The guide text appears in the conversation before the first model-choice AskUserQuestion",
-        "spdd-agent/assets/first-run.md is read, and spdd-agent/assets/model-bootstrap.md's first-run section resolves the six phase models via AskUserQuestion before any phase launches",
-        "The dedicated-layer offer appears as one AskUserQuestion with 'yes' as the recommended option, and nothing is installed until it is accepted",
-        "After acceptance, spdd-install's own per-host confirmations gate every write — spdd-agent never writes a dedicated agent file or ~/.claude/settings.json itself",
-        "Phases launched later in the same run use Dedicated mode for the phases that just gained well-formed dedicated files",
+        "spdd-agent/assets/first-run.md is read, and spdd-agent/assets/model-bootstrap.md's first-run section resolves the four phase models via AskUserQuestion before any phase launches",
         "The guide and any per-phase one-liner text never appears inside canvas.md, plans/*.md, or spdd/specs/*.md"
-      ]
-    },
-    {
-      "id": 91,
-      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "First run with the onboarding running as in eval 90, but the user declines the dedicated-layer offer. Nothing is written beyond ~/.config/spdd/config.json (bootstrap output) — no dedicated agent files, no settings changes. The response notes the layer stays available via an explicit /spdd-install at any time, and the flow continues in Isolated/Inline mode exactly as any non-first run would.",
-      "setup": "Ensure ~/.config/spdd/config.json does not exist, the host has a subagent mechanism, and not all four dedicated spdd-<phase>.md files are well-formed (so the offer fires). Decline the offer when asked.",
-      "assertions": [
-        "After the decline, no dedicated agent file is created and no settings file is modified — the only write is ~/.config/spdd/config.json from the bootstrap",
-        "The response contains a note that the dedicated layer stays available via explicit /spdd-install at any time",
-        "The flow continues — canvas and later phases run via Step 3/3-alt (Isolated/Inline), with no Dedicated-mode '[automatic decision]' line for any phase",
-        "The onboarding does not retry the offer later in the same run"
-      ]
-    },
-    {
-      "id": 92,
-      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "First run on a host with no subagent-launching mechanism at all (Inline-mode host). The guide still shows before the bootstrap questions, the bootstrap completes normally, and the dedicated-layer offer is skipped entirely — dedicated wrappers would be unusable without a mechanism to launch subagents. The flow continues inline.",
-      "setup": "Ensure ~/.config/spdd/config.json does not exist. Simulate a host with no mechanism to launch an isolated subagent at all (no Agent/Task tool), with no dedicated spdd-<phase>.md files present.",
-      "assertions": [
-        "The guide appears before the first model-choice question",
-        "No dedicated-layer AskUserQuestion appears anywhere in the run",
-        "The bootstrap still completes and writes ~/.config/spdd/config.json",
-        "Every phase runs inline via Step 3-alt, per the host's lack of a subagent mechanism"
-      ]
-    },
-    {
-      "id": 93,
-      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "First run where all four dedicated spdd-<phase>.md files for the current host are already well-formed (e.g. hand-installed before any spdd-agent run). The guide shows and the bootstrap completes, but the dedicated-layer offer is skipped silently — there is nothing to install. Per-phase Dedicated detection and the opencode divergence check then behave exactly as today against the freshly bootstrapped config values, report-only.",
-      "setup": "Ensure ~/.config/spdd/config.json does not exist, the host has a subagent mechanism, and all four dedicated spdd-<phase>.md files in the current host's agent directory are well-formed before running.",
-      "assertions": [
-        "No dedicated-layer AskUserQuestion appears — the offer is skipped without a message",
-        "The guide appears before the first model-choice question and the bootstrap writes ~/.config/spdd/config.json",
-        "Later phases launch in Dedicated mode with their '[automatic decision] Dedicated mode' lines as usual",
-        "Any model-source divergence between the installed files and the freshly bootstrapped config is reported as a transparency line pointing at /spdd-install — never rewritten by spdd-agent"
       ]
     },
     {
       "id": 94,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "Non-first run (~/.config/spdd/config.json already complete): Step 1 takes the fast path and behavior is byte-identical to the pre-onboarding flow — no guide, no dedicated-layer offer, no per-phase one-liners. spdd-agent/assets/first-run.md is never read; Step 2's per-phase Dedicated detection with silent fallback is unchanged.",
-      "setup": "Ensure ~/.config/spdd/config.json exists with the applicable section complete (all six phases as non-empty strings) before running. Host and dedicated-files state can be either way — the offer logic must not engage regardless.",
+      "expected_output": "Non-first run (~/.config/spdd/config.json already complete): Step 1 takes the fast path and behavior is byte-identical to the pre-onboarding flow — no guide, no per-phase one-liners. spdd-agent/assets/first-run.md is never read.",
+      "setup": "Ensure ~/.config/spdd/config.json exists with the applicable section complete (all four phases as non-empty strings) before running.",
       "assertions": [
         "spdd-agent/assets/first-run.md is not read at any point during the run",
         "No onboarding guide text appears before the canvas phase",
-        "No dedicated-layer AskUserQuestion is raised and no per-phase one-liner accompanies the phase launches",
+        "No per-phase one-liner accompanies the phase launches",
         "The run's steps, transparency lines, and phase launches match the pre-onboarding fast-path behavior exactly"
       ]
     },
     {
       "id": 95,
       "prompt": "en src/utils/slugify.ts, corrige el bug donde los espacios no se reemplazan por guiones",
-      "expected_output": "First use via the direct route (~/.config/spdd/config.json absent, but Step 0's routing decision is direct). The direct route behaves exactly as today: no onboarding guide, no model bootstrap, no dedicated-layer offer — per the 'model bootstrap does not block the direct route' norm. The change is implemented directly, tests run, and the spec is annotated.",
-      "setup": "Ensure ~/.config/spdd/config.json does not exist and src/utils/slugify.ts exists with the described bug; use a host with a subagent mechanism and no well-formed dedicated files, so any wrongly-fired onboarding or offer would be visible.",
+      "expected_output": "First use via the direct route (~/.config/spdd/config.json absent, but Step 0's routing decision is direct). The direct route behaves exactly as today: no onboarding guide, no model bootstrap — per the 'model bootstrap does not block the direct route' norm. The change is implemented directly, tests run, and the spec is annotated.",
+      "setup": "Ensure ~/.config/spdd/config.json does not exist and src/utils/slugify.ts exists with the described bug; use a host with a subagent mechanism, so any wrongly-fired onboarding would be visible.",
       "assertions": [
         "The transparency line 'Direct route:' appears and the change is implemented without any canvas",
         "No onboarding guide text appears and spdd-agent/assets/first-run.md is never read",
-        "~/.config/spdd/config.json is not created — no model bootstrap and no dedicated-layer offer occur",
+        "~/.config/spdd/config.json is not created — no model bootstrap occurs",
         "The direct-route summary is still annotated in spdd/specs/ when tests pass"
       ]
     },
     {
       "id": 96,
       "prompt": "usa spdd-agent para ver qué modelo tiene configurado cada fase",
-      "expected_output": "A first-time user's first interaction is an explicit config request and ~/.config/spdd/config.json doesn't exist. The onboarding fires with the bootstrap: the guide shows first, then model-bootstrap.md's first-run bootstrap asks and writes the six values; the dedicated-layer offer fires per its usual conditions. The run then ends after reporting the resulting config — no feature flow starts, no canvas phase launches (Step 0's config-request routing).",
-      "setup": "Ensure ~/.config/spdd/config.json does not exist. Run on a host with a subagent mechanism and not all four dedicated files well-formed (so the offer would fire).",
+      "expected_output": "A first-time user's first interaction is an explicit config request and ~/.config/spdd/config.json doesn't exist. The onboarding fires with the bootstrap: the guide shows first, then model-bootstrap.md's first-run bootstrap asks and writes the four values. The run then ends after reporting the resulting config — no feature flow starts, no canvas phase launches (Step 0's config-request routing).",
+      "setup": "Ensure ~/.config/spdd/config.json does not exist. Run on a host with a subagent mechanism.",
       "assertions": [
         "The guide appears before the first model-choice question",
-        "The six phase models are bootstrapped via AskUserQuestion and written to ~/.config/spdd/config.json",
-        "The dedicated-layer offer is evaluated under its usual conditions and, if accepted, spdd-install runs with its own confirmations as the only write gate",
+        "The four phase models are bootstrapped via AskUserQuestion and written to ~/.config/spdd/config.json",
         "The run ends after reporting the resulting config — no canvas.md is created and no feature phase is launched"
       ]
     },
     {
-      "id": 97,
+      "id": 101,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "First run where the user accepts the dedicated-layer offer, but `spdd-install`'s Step 1 hard guard fires (the config ended up incomplete when the installer ran — e.g. the bootstrap was interrupted and `~/.config/spdd/config.json` is missing or missing a key). `spdd-agent` reports the guard's message to the user verbatim, never retries the install and never bypasses the guard (no manual writing of agent files or settings), and continues the feature flow in Isolated/Inline mode as if the offer had been declined.",
-      "setup": "Ensure `~/.config/spdd/config.json` is absent or incomplete at the moment `spdd-install`'s Step 1 runs (simulate an interrupted bootstrap mid-onboarding). Host has a subagent mechanism; dedicated files not all well-formed, so the offer fires; accept it.",
+      "expected_output": "~/.config/opencode/ exists on the machine but none of the four ~/.config/opencode/agents/spdd-<phase>.md files exist yet. Step 2b detects the gap, shows a transparency line noting it, and asks via a real foreground AskUserQuestion whether to run install-opencode-agents.sh now, with 'yes' recommended. The user accepts; spdd-agent runs the script via Bash, which writes all four files with the model translated from config.json's flat `models` key and a matching spdd-agent:model-source marker.",
+      "setup": "Ensure ~/.config/opencode/ exists (empty agents/ dir or none at all) and ~/.config/spdd/config.json has valid values for all four phases. Accept the Step 2b offer when it fires.",
       "assertions": [
-        "The guard's stop message is reported to the user — not swallowed, worked around, or paraphrased into a success",
-        "No dedicated agent file is created and `~/.claude/settings.json` (or any settings file) is not modified — the guard stops all writes",
-        "spdd-agent does not retry the install, does not re-ask the offer later in the same run, and does not write agent files itself",
-        "The feature flow continues — canvas and later phases run via Step 3/3-alt (Isolated/Inline), with no Dedicated-mode '[automatic decision]' line"
+        "A transparency line notes the opencode dedicated-agent gap before the AskUserQuestion",
+        "The AskUserQuestion offers running install-opencode-agents.sh with 'yes' as the recommended option",
+        "After acceptance, all four ~/.config/opencode/agents/spdd-*.md files exist with a model: field and a matching spdd-agent:model-source marker",
+        "spdd-agent reports which files were written"
       ]
     },
     {
-      "id": 98,
+      "id": 102,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "First run where the user accepts the dedicated-layer offer, but the `spdd-install` skill cannot be loaded through the host's skill mechanism and its installed `SKILL.md` is unreachable (a per-skill symlink install skipped it). `spdd-agent` reports that the installer skill isn't available and points at `README.md`'s manual-install step, writes nothing itself, and continues the feature flow without the dedicated layer in Isolated/Inline mode.",
-      "setup": "Ensure `~/.config/spdd/config.json` does not exist (first run), the host has a subagent mechanism, and the `spdd-install` skill is not installed/not reachable (no symlink in the host's skills directory and no readable SKILL.md). Accept the offer when asked.",
+      "expected_output": "Same gap as eval 101, but the user declines Step 2b's offer. Nothing is written under ~/.config/opencode/agents/. The run continues — every phase lacking a file dispatches as Isolated-mode-without-override (today's honest fallback). The offer is not forced again in this same run, but the gap still exists for the next spdd-agent invocation.",
+      "setup": "Same setup as eval 101. Decline the Step 2b offer when asked.",
       "assertions": [
-        "The response states the installer skill isn't available and references README's manual-install instructions",
-        "No dedicated agent file or settings file is written by spdd-agent — nothing is installed by any other means",
-        "The flow does not stall or end after the failed invocation — canvas and later phases continue via Step 3/3-alt",
-        "The failure is not retried later in the same run"
+        "No file is created under ~/.config/opencode/agents/ after the decline",
+        "The flow continues without blocking — phases dispatch via Isolated-mode-without-override",
+        "No Dedicated-style named-agent transparency line appears for any phase this run",
+        "The response does not claim per-phase model selection is in effect"
       ]
     },
     {
-      "id": 99,
+      "id": 103,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "First run where only some of the four dedicated `spdd-<phase>.md` files for the current host are well-formed (partial install). The dedicated-layer offer still fires — the condition is 'not all four well-formed', not 'none present'. On acceptance, `spdd-install` installs the missing files and resyncs the existing ones, each behind its own confirmation; later in the same run, the phases whose files are now well-formed launch in Dedicated mode.",
-      "setup": "Ensure `~/.config/spdd/config.json` does not exist. Install 1–3 (not all 4) well-formed dedicated `spdd-<phase>.md` files for the current host (or install all 4 with one deliberately malformed). Run on a host with a subagent mechanism; accept the offer.",
+      "expected_output": "All four ~/.config/opencode/agents/spdd-<phase>.md files already exist, are well-formed, and their spdd-agent:model-source markers match config.json's current flat values. Step 2b makes no transparency line and no offer — silent pass-through — and the run proceeds directly to Step 1/canvas dispatch.",
+      "setup": "Pre-create all four well-formed opencode agent files with markers matching the current config.json flat values before running.",
       "assertions": [
-        "The dedicated-layer offer fires despite some dedicated files already being present and well-formed",
-        "spdd-install writes only the missing files (plus any confirmed resync), each behind its own AskUserQuestion confirmation",
-        "Phases whose dedicated files are well-formed after the install launch in Dedicated mode; any phase still lacking a well-formed file falls back per Step 2 without blocking",
-        "No dedicated file is rewritten or deleted by spdd-agent itself — all writes come from spdd-install's confirmed steps"
+        "No Step 2b transparency line or AskUserQuestion appears",
+        "install-opencode-agents.sh is not invoked",
+        "No existing opencode agent file is rewritten or touched"
       ]
     },
     {
-      "id": 100,
+      "id": 104,
       "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
-      "expected_output": "The user aborts the run during the first-run onboarding (before it finishes — e.g. after the guide but before the bootstrap completes, or mid-offer). The onboarding is stateless and idempotent: nothing partial is left behind beyond what was explicitly confirmed before the abort. On the next run, since `~/.config/spdd/config.json` is still missing, the onboarding re-enters from the start (guide again, bootstrap again, offer again) — no skipped step, no duplicated partial state, no marker file.",
-      "setup": "Run once with `~/.config/spdd/config.json` absent and abort the interaction mid-onboarding (before the bootstrap write, or right after accepting/declining the offer but before Step 2). Then run the same prompt again, still with config.json absent (or only whatever the aborted run legitimately wrote), and observe the restart behavior.",
+      "expected_output": "~/.config/opencode/agents/spdd-design.md exists but has unparseable frontmatter (broken YAML); the other three files are well-formed and up to date. Step 2b treats the malformed file the same as missing — includes it in the gap and offers to (re)write it — without blocking or crashing over the bad file.",
+      "setup": "Pre-create three well-formed, up-to-date opencode agent files (canvas, implement, verify) and one malformed spdd-design.md (broken frontmatter) before running.",
       "assertions": [
-        "The aborted run leaves no partial artifacts beyond what was explicitly confirmed before the abort (no half-written config, no agent file, no onboarding state file)",
-        "The next run re-enters the full onboarding — guide, bootstrap, offer — because config.json is still missing",
-        "No onboarding progress marker or state file is created on disk between runs",
-        "If the aborted run had already written a complete config.json (abort after the bootstrap), the next run takes the fast path instead — no guide, no offer"
+        "Step 2b's gap includes spdd-design.md and excludes the other three well-formed files",
+        "The flow does not stop, crash, or block on the malformed file",
+        "On acceptance, install-opencode-agents.sh rewrites spdd-design.md into a well-formed file"
+      ]
+    },
+    {
+      "id": 105,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "Running under opencode itself, with all four dedicated agent files already well-formed and up to date. Step 3 dispatches each phase via the Task tool using subagent_type: 'spdd-<phase>' (the named agent) instead of the generic ad-hoc subagent_type, passing no model field — the named agent's own frontmatter carries the model.",
+      "setup": "Run under opencode (not Claude Code) with all four opencode dedicated agent files pre-installed and up to date.",
+      "assertions": [
+        "Every phase call uses subagent_type: 'spdd-<phase>', not the generic ad-hoc opencode subagent type",
+        "No model field is passed on any of these calls",
+        "The prompt for these calls carries only the skill-call context, not a restated never-block rule or report contract"
+      ]
+    },
+    {
+      "id": 106,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "Running under Claude Code, with opencode also present on the machine and all four opencode dedicated agent files already well-formed and up to date. Claude Code's own Step 2/Step 3 behavior is byte-identical to the v2.0 fix: Isolated-mode-with-override, generic subagent_type: 'general-purpose', model passed on every call from config.json's claude.models section. The presence or state of the opencode files has no effect on this session's dispatch.",
+      "setup": "Run under Claude Code (CLAUDECODE=1) with ~/.config/opencode/agents/spdd-*.md all present and well-formed.",
+      "assertions": [
+        "Every phase call uses subagent_type: 'general-purpose' (Claude Code's generic ad-hoc type), never 'spdd-<phase>'",
+        "model is passed on every call, taken from claude.models",
+        "The response never mentions dispatching by name or skipping the never-block rule for any phase"
+      ]
+    },
+    {
+      "id": 107,
+      "prompt": "hay que implementar un endpoint que devuelva el estado de salud del servicio (health check)",
+      "expected_output": "Running under Claude Code on a machine where ~/.config/spdd/config.json exists but holds only a `claude` namespace — spdd-agent has so far only ever bootstrapped under Claude Code, so the flat top-level `models` key was never written. opencode is present (~/.config/opencode/ exists) with no dedicated agent files yet, so Step 2b's gap check fires and the offer is accepted. install-opencode-agents.sh never reads `claude.models` as a fallback for opencode's values — it reads only the flat `models` key, finds it missing for all four phases, and exits non-zero with a message explaining the flat key was never bootstrapped and pointing at running spdd-agent once under opencode to fix it. spdd-agent reports this failure plainly (not as a silent success) and continues the feature flow in Isolated-mode-without-override for opencode dispatch, or Isolated-mode-with-override if the current host is Claude Code.",
+      "setup": "Run under Claude Code (CLAUDECODE=1). ~/.config/spdd/config.json contains only {\"claude\": {\"models\": {...four values...}}} — no flat top-level \"models\" key. ~/.config/opencode/ exists with an empty or missing agents/ dir. Accept the Step 2b offer when it fires.",
+      "assertions": [
+        "install-opencode-agents.sh is invoked and exits non-zero",
+        "No file is created under ~/.config/opencode/agents/ — the script never falls back to reading claude.models to populate opencode's files",
+        "spdd-agent surfaces the script's failure and guidance to the user rather than claiming the dedicated layer was installed",
+        "The feature flow is not blocked by this failure — it continues via Isolated-mode-without-override (or with-override, on Claude Code's own dispatch) exactly as if the offer had never been accepted"
       ]
     }
   ]

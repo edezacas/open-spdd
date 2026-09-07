@@ -9,8 +9,7 @@ Non-Claude-Code hosts read/write the flat top-level key exactly as before:
 ```json
 {
   "models": {
-    "canvas": "opus", "design": "opus", "implement": "sonnet",
-    "verify": "opus", "sync": "sonnet", "migrate": "sonnet"
+    "canvas": "opus", "design": "opus", "implement": "sonnet", "verify": "opus"
   }
 }
 ```
@@ -20,17 +19,18 @@ Claude Code hosts read/write a `claude` namespace instead, wrapping the same `mo
 {
   "claude": {
     "models": {
-      "canvas": "opus", "design": "opus", "implement": "sonnet",
-      "verify": "opus", "sync": "sonnet", "migrate": "sonnet"
+      "canvas": "opus", "design": "opus", "implement": "sonnet", "verify": "opus"
     }
   }
 }
 ```
 `claude` is a top-level key sibling to any future host namespace.
 
-Only `canvas`, `design`, `implement`, and `verify` are ever used by `spdd-agent`'s own flow (Steps 4–8) — `sync` and `migrate` keep their independent auto-trigger and run standalone, outside this orchestrator.
+These four keys are the only phases `spdd-agent` ever dispatches as subagents (Steps 4–8). `spdd-sync` and `spdd-migrate` run standalone via their own auto-trigger, outside this orchestrator, and never take a model override — they have no entry in this config.
 
-Each value is a free-text model identifier in whatever form the current host's subagent mechanism accepts — not a fixed enum. On Claude Code that's `opus` / `sonnet` / `haiku` / `fable`; on a host like opencode it's a provider-qualified id (e.g. `anthropic/claude-sonnet-4-5`, `openai/gpt-5`) or whatever string that host's model-override field expects. This skill never validates the string against a host-specific list — it only checks that a value is present and non-empty, and passes it through verbatim to the subagent call in Step 3.
+Each value is a free-text model identifier — not a fixed enum. On Claude Code that's `opus` / `sonnet` / `haiku` / `fable`, and it's genuinely applied: Step 3 passes it as the `Agent` tool's `model` param on every phase call. This skill never validates the string against a host-specific list — it only checks that a value is present and non-empty.
+
+**opencode has no per-call model override at all** (confirmed against opencode's own docs: an ad-hoc subagent always runs at the model of the primary agent that invoked it — there is no model field on the Task tool). Bootstrap still asks for and stores four values on opencode for config-shape consistency across hosts, but say so plainly when bootstrapping under opencode: on their own, these values are **not** applied — every phase will run at whatever model the current conversation itself is using. The fix is `SKILL.md`'s Step 2b: it detects when opencode's dedicated agent files are missing or stale and offers to run `assets/install-opencode-agents.sh`, which pins each phase's value into a named agent file's frontmatter — the one form of model selection opencode's Task tool actually honors.
 
 ## Default tiers
 
@@ -40,30 +40,28 @@ Each value is a free-text model identifier in whatever form the current host's s
 | `design` | high-reasoning | `opus` |
 | `implement` | fast/cheap | `sonnet` |
 | `verify` | high-reasoning | `opus` |
-| `sync` | fast/cheap | `sonnet` |
-| `migrate` | fast/cheap | `sonnet` |
 
-Tier rationale: canvas/design/verify favor high-reasoning (ambiguity detection, architectural calls, edge-case/Norms checking); implement/sync/migrate favor fast/cheap (executing an already-validated plan, mechanical spec sync, mechanical layout migration).
+Tier rationale: canvas/design/verify favor high-reasoning (ambiguity detection, architectural calls, edge-case/Norms checking); implement favors fast/cheap (executing an already-validated plan).
 
 The last column is one worked example, not the framework's default — any host with its own fixed alias set (present or future) maps `Suggested tier` to that set the same way.
 
 ## First-run bootstrap (file doesn't exist)
 
-Before touching the user's feature request, propose a default model per phase (table above) via `AskUserQuestion`, grouped into 1–2 calls of up to 4 questions each. The choice of options depends on the host's capability, not its identity: if the host's model-override field accepts a small fixed set of named aliases (e.g. Claude Code's `opus`/`sonnet`/`haiku`/`fable`), offer that set as options with the table's suggested tier pre-marked "(Recommended)". If the host instead takes an arbitrary model-identifier string, offer the table's suggested tier as the recommended free-text default and let the user type the exact identifier they want via `AskUserQuestion`'s "Other". Write the confirmed selections to `~/.config/spdd/config.json` (create `~/.config/spdd/` if needed) — under the `claude` namespace if Claude Code was detected, under the flat top-level `models` key otherwise.
+Before touching the user's feature request, propose a default model per phase (table above) via `AskUserQuestion`, grouped into 1–2 calls of up to 4 questions each. The choice of options depends on the host's capability, not its identity: on Claude Code, offer the fixed alias set (`opus`/`sonnet`/`haiku`/`fable`) with the table's suggested tier pre-marked "(Recommended)" — these values are genuinely applied per phase. On opencode (or any host confirmed to have no per-call model override), still ask and store the four values the same way, but say plainly, once, before the questions: on their own, ad-hoc dispatch cannot apply these — every phase runs at this conversation's own model — until Step 2b's dedicated-agent check offers to pin them via `assets/install-opencode-agents.sh`. Write the confirmed selections to `~/.config/spdd/config.json` (create `~/.config/spdd/` if needed) — under the `claude` namespace if Claude Code was detected, under the flat top-level `models` key otherwise.
 
-## Repair (file exists, one or more of the six values missing/empty/not-a-string)
+## Repair (file exists, one or more of the four values missing/empty/not-a-string)
 
-Check the applicable section's six values; treat a missing, empty, or non-string value as absent and re-ask only for that phase (same `AskUserQuestion` mechanism), then write the corrected file back to that same section — the other five values, and any unrelated top-level keys, stay untouched.
+Check the applicable section's four values; treat a missing, empty, or non-string value as absent and re-ask only for that phase (same `AskUserQuestion` mechanism), then write the corrected file back to that same section — the other values, and any unrelated top-level keys, stay untouched.
 
-This also applies when the JSON parses but matches neither the flat nor the `claude`-namespaced schema for the six phase values (e.g. a hand-edited file with a `claude` key that isn't an object): re-ask only for what's unresolvable from the file, without overwriting unrelated valid top-level keys.
+This also applies when the JSON parses but matches neither the flat nor the `claude`-namespaced schema for the four phase values (e.g. a hand-edited file with a `claude` key that isn't an object): re-ask only for what's unresolvable from the file, without overwriting unrelated valid top-level keys.
 
 ## Malformed or unparseable file
 
-If `~/.config/spdd/config.json` exists but fails to parse as JSON, or is a zero-byte file: treat this the same as the repair case above, except nothing can be trusted from the file — ask for all six values via `AskUserQuestion`, and warn the user the existing file couldn't be parsed before writing over it.
+If `~/.config/spdd/config.json` exists but fails to parse as JSON, or is a zero-byte file: treat this the same as the repair case above, except nothing can be trusted from the file — ask for all four values via `AskUserQuestion`, and warn the user the existing file couldn't be parsed before writing over it.
 
 ## Migration (flat `models` complete, Claude Code detected, no `claude` namespace yet)
 
-If Claude Code is detected and the file has a flat top-level `models` key with all six values but no `claude` namespace yet, this is a one-time migration, not ordinary repair. Writing it is a side effect — per "Decision transparency" in `SKILL.md`, propose it via a real foreground `AskUserQuestion` (copy the flat key's six values into a new `claude.models` namespace; leave the flat key untouched) and only write once confirmed. Never perform this write silently, and never delete or modify the original flat key.
+If Claude Code is detected and the file has a flat top-level `models` key with all four values but no `claude` namespace yet, this is a one-time migration, not ordinary repair. Writing it is a side effect — per "Decision transparency" in `SKILL.md`, propose it via a real foreground `AskUserQuestion` (copy the flat key's four values into a new `claude.models` namespace; leave the flat key untouched) and only write once confirmed. Never perform this write silently, and never delete or modify the original flat key.
 
 If both a flat `models` key and a `claude` namespace are already present, read only from `claude` — never merge or delete the flat key (this is the ordinary fast path handled inline in `SKILL.md`, not a migration case).
 

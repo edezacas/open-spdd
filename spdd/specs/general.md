@@ -15,8 +15,8 @@ CI checks, README conventions, persisted reviews) to be cheap to run and impossi
 silently regress, so that the whole team keeps the framework healthy without manual attention.
 
 **Scenario: eval assets get a lightweight CI guard**
-- WHEN a push or PR touches any `*/evals/evals.json`, `**/assets/hook-setup.md`, `**/assets/agent-claude-code.md`, `**/assets/agent-opencode.md`, or `spdd-agent/SKILL.md`
-- THEN the GitHub Actions workflow `.github/workflows/evals.yml` validates every `spdd-*/evals/evals.json` (parses as JSON, ids unique across the file, `prompt`/`assertions` non-empty), runs `bash scripts/check-hook-sync.sh` and `bash scripts/check-agent-sync.sh`, and fails on any violation — agent-run eval suites stay manual (expensive, need API keys), and the workflow is static-only: no `secrets:` usage, passes on a fresh fork
+- WHEN a push or PR touches any `*/evals/evals.json` or `**/assets/hook-setup.md`
+- THEN the GitHub Actions workflow `.github/workflows/evals.yml` validates every `spdd-*/evals/evals.json` (parses as JSON, ids unique across the file, `prompt`/`assertions` non-empty) and runs `bash scripts/check-hook-sync.sh`, failing on any violation — agent-run eval suites stay manual (expensive, need API keys), and the workflow is static-only: no `secrets:` usage, passes on a fresh fork
 
 **Scenario: the spec compaction policy is documented**
 - WHEN a team wonders how large a domain spec may grow
@@ -42,7 +42,7 @@ silently regress, so that the whole team keeps the framework healthy without man
 
 | Type | Identifier | Description |
 |------|-----------|-------------|
-| Create | `.github/workflows/evals.yml` | on: push/PR touching `**/evals/evals.json`, `**/assets/hook-setup.md`, `**/assets/agent-claude-code.md`, `**/assets/agent-opencode.md`, or `spdd-agent/SKILL.md`; steps: JSON validity + id uniqueness + required fields per eval; `bash scripts/check-hook-sync.sh`; `bash scripts/check-agent-sync.sh` |
+| Create | `.github/workflows/evals.yml` | on: push/PR touching `**/evals/evals.json` or `**/assets/hook-setup.md`; steps: JSON validity + id uniqueness + required fields per eval; `bash scripts/check-hook-sync.sh` |
 | Document | `README.md` | "Eval results registry" convention (agent-run results committed as dated summaries) and "Spec size budget" section; links the assessment doc |
 | Create | `REVIEW-2026-09-02-framework-assessment.md` | Persisted 2026-09-02 review (four-goal assessment, drift evidence, prioritized recommendations, implemented-vs-deferred postscript) |
 

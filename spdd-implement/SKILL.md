@@ -6,7 +6,7 @@ compatibility: Works with any agent. Step 5 (SPDD hook and subagent cache TTL se
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.6"
+  version: "2.7"
 ---
 
 ## Instructions

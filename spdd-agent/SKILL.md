@@ -1,12 +1,12 @@
 ---
 name: spdd-agent
-description: Builds a new feature end-to-end from a single plain-language description — runs canvas → design → implement → verify automatically, pausing only on required confirmations. On a machine's first run it walks a short onboarding (flow guide + model bootstrap) and offers, confirmation-gated, to invoke /spdd-install for the optional dedicated per-phase subagent layer. Use when the user describes a new feature, or asks to build/add/implement something, without naming a specific /spdd-* command. Also handles requests to view or change the per-phase model configuration.
+description: Builds a new feature end-to-end from a single plain-language description — runs canvas → design → implement → verify automatically, pausing only on required confirmations. On a machine's first run it walks a short onboarding (flow guide + model bootstrap). Use when the user describes a new feature, or asks to build/add/implement something, without naming a specific /spdd-* command. Also handles requests to view or change the per-phase model configuration.
 license: Apache-2.0
-compatibility: Works with any agent. Subagent isolation requires any host mechanism that can launch a subagent (e.g. Claude Code's `Agent` tool, or opencode's Task tool with a `subagent_type`); per-phase model selection additionally requires that mechanism to accept a model override.
+compatibility: Works with any agent. Subagent isolation requires any host mechanism that can launch a subagent (e.g. Claude Code's `Agent` tool, or opencode's Task tool with a `subagent_type`); per-phase model selection additionally requires that mechanism to accept a per-invocation model override. Claude Code's `Agent` tool does. opencode's Task tool does not — per opencode's own docs, an ad-hoc subagent always runs at the model of the primary agent that invoked it, with no per-call override — but `spdd-agent` can install 4 dedicated opencode agent files (`assets/install-opencode-agents.sh`, offered automatically when missing or stale) with the model pinned per phase in each file's own frontmatter, which opencode's Task tool does honor when invoked by name.
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.16"
+  version: "2.1"
 ---
 
 ## Instructions
@@ -75,40 +75,45 @@ This determines the **applicable section**: `claude.models` under Claude Code, t
 
 - If the file doesn't exist → not complete (first-run bootstrap case).
 - If it exists but fails to parse as JSON, or is a zero-byte file → not complete (malformed/unparseable case).
-- If it parses: inspect only the applicable section — the other section (if present) is never inspected or touched. It's **complete** only if that section has all six keys (`canvas`, `design`, `implement`, `verify`, `sync`, `migrate`) present as non-empty strings.
+- If it parses: inspect only the applicable section — the other section (if present) is never inspected or touched. It's **complete** only if that section has all four keys (`canvas`, `design`, `implement`, `verify`) present as non-empty strings.
 - If Claude Code is detected and `claude.models` is missing entirely, but a flat top-level `models` key is present and complete → not complete (this is the migration case, not the fast path).
 - If the current request is an **explicit ask to change** one or more phase values (Step 0's config-request path) → not complete, regardless of the checks above. A change always needs the asking mechanics that live in `model-bootstrap.md`, even when the applicable section was already fully valid.
 
-**Fast path.** If complete per the check above: read the six values from the applicable section directly. For the ordinary feature flow, proceed straight to Step 2. For an explicit config request that only wants to *view* the current values, report those six values and stop — do not proceed to Step 2. Either way, `spdd-agent/assets/model-bootstrap.md` is never opened and no `AskUserQuestion` call is made.
+**Fast path.** If complete per the check above: read the four values from the applicable section directly. For the ordinary feature flow, proceed straight to Step 2. For an explicit config request that only wants to *view* the current values, report those four values and stop — do not proceed to Step 2. Either way, `spdd-agent/assets/model-bootstrap.md` is never opened and no `AskUserQuestion` call is made.
 
 **Everything else:** if the classification above was the file-doesn't-exist case (first run), read [first-run.md](assets/first-run.md) and follow it — it hands off to [model-bootstrap.md](assets/model-bootstrap.md)'s "First-run bootstrap" section; every other case (repair, migration, malformed/unparseable, explicit value change) reads [model-bootstrap.md](assets/model-bootstrap.md) directly, exactly as before. Those assets own every `AskUserQuestion` mechanic and every config write for their cases, so nothing here repeats them. Once Step 1 finishes: for the ordinary feature flow, proceed to Step 2; for an explicit config request, report the resulting config and stop — do not proceed to Step 2.
 
-### Step 2 — Detect subagent support
+### Step 2 — Detect subagent capability
 
-**Host-capability fallback (Levels 1–3, determined once).** Check whether the current host exposes a mechanism to launch an isolated subagent — a way to spawn a separate worker and give it a prompt: in Claude Code, the `Agent` tool; in opencode, the Task tool with a `subagent_type`; other hosts may name it differently but the shape is the same. Isolation does not depend on model selection. If such a mechanism exists, use **Isolated mode** (Step 3) — and if that mechanism also accepts a model override (Claude Code's `Agent` `model` param, or opencode's Task tool where it exposes an `agent`/`model` field), take each phase's model from the config loaded in Step 1; otherwise the subagents run at the host's default model and per-phase model selection is lost. If no subagent mechanism exists at all, use **Inline mode** (Step 3-alt). This is a one-time, per-host determination — it does not vary per phase.
+Once per run (not per phase): does the current host expose a mechanism to launch an isolated subagent — a way to spawn a separate worker and give it a prompt? In Claude Code, the `Agent` tool; in opencode, the Task tool with a `subagent_type`; other hosts may name it differently but the shape is the same.
 
-Display the transparency line for this choice once, before the first phase that needs it runs — phrased in the conversation's language per "Decision transparency" above: `[automatic decision] Isolated mode with model override — the host's subagent mechanism accepts a model.` or `[automatic decision] Isolated mode without model override — subagents launch at the host's default model; per-phase model selection is lost.` or `[automatic decision] Inline mode — the host doesn't expose a subagent mechanism; isolation and per-phase model selection are lost.`
+This is a fact about the host, never inferred at runtime — check the host's own documented capability, not whether a tool call happens to accept an extra field:
 
-**Dedicated agent detection (Level 0, checked per phase).** Independently of the host-capability fallback above, right before invoking **each individual phase** (Steps 4, 6, 7, 8), check whether a dedicated agent definition exists for that specific phase in the host's agent directory: `~/.claude/agents/spdd-<phase>.md` (Claude Code) or `~/.config/opencode/agents/spdd-<phase>.md` (opencode). If it exists and is well-formed (parseable frontmatter, required fields present, non-empty body), use **Dedicated mode** (Step 3-dedicated) for that phase instead of Step 3/3-alt. A file that exists but is malformed (unparseable frontmatter, missing required fields, or an empty body) is treated as absent: warn, skip Dedicated mode for that phase, and fall back to whatever Step 3/3-alt would otherwise use — the flow never blocks or crashes over a bad agent file. This check is strictly per-phase and per-host: a phase with no dedicated file falls back on its own (no effect on the other phases), and only the current host's agent directory is ever checked — a project running under opencode never looks at `~/.claude/agents/`, and vice versa, so having only one host's wrappers installed never leaks across hosts.
+- **Claude Code** → mechanism exists and its `Agent` tool takes a per-invocation `model` param → **Isolated mode** (Step 3), model taken from the config loaded in Step 1, passed on every call.
+- **opencode** → mechanism exists (the Task tool) but it has no per-invocation model override at all — an ad-hoc subagent always runs at the model of the primary agent that invoked it. Still **Isolated mode** (Step 3), but never pass a `model` field to the Task tool, and never claim per-phase model selection is in effect: every phase runs at whatever model this conversation itself is using.
+- **Any other host** → check that host's own documentation for whether its subagent mechanism accepts a per-invocation model field before assuming it does; if it doesn't, treat it the same as opencode above.
+- **No subagent mechanism at all** → **Inline mode** (Step 3-alt).
 
-Display `[automatic decision] Dedicated mode — a dedicated spdd-<phase> agent is installed; skill preload and structural tool scoping apply.` immediately before launching any phase for which Dedicated mode applies.
+Display the transparency line for this choice once, before the first phase runs — phrased in the conversation's language per "Decision transparency" above: `[automatic decision] Isolated mode with model override — Claude Code's Agent tool accepts a model.` or `[automatic decision] Isolated mode without model override — opencode's Task tool has no per-call model field; every phase runs at this conversation's own model.` or `[automatic decision] Inline mode — the host doesn't expose a subagent mechanism; isolation and per-phase model selection are lost.`
 
-**opencode divergence check (Dedicated mode only).** When Dedicated mode is selected for a phase on opencode: read the `<!-- spdd-install:model-source=<value> -->` marker from the agent file's body (written by `spdd-install`) and compare it — as a plain string, **never** translated — against config.json's current raw value for that phase (loaded in Step 1). Never compare config.json's raw value against the frontmatter `model:` field directly — `model:` always holds an already-translated provider-qualified id, while config.json commonly holds a tier alias (`sonnet`), so that comparison would false-positive on every run on any machine using tier-style values. If the marker is missing entirely (a file installed before the marker existed, or hand-written), treat it as unknown and skip the comparison — do not guess. If the marker and config.json's raw value differ, display a transparency line reporting the divergence and pointing at `/spdd-install` to resync, then proceed anyway with the agent file's own model (the Task tool cannot override it) — never rewrite the agent file from here; that confirmation-gated rewrite is `spdd-install`'s job alone.
+### Step 2b — opencode dedicated-agent check (once per run, regardless of which host is running this session)
 
-### Step 3-dedicated — Dedicated mode: phase invocation contract
+opencode has no per-call model override (Step 2 above), so the only way to pin a specific model to a specific phase there is a named agent file with a static `model:` in its frontmatter. This check runs on **any** host — a Claude Code session can prep opencode for later use on the same machine; it only ever touches opencode paths and never affects this session's own dispatch when the current host is Claude Code.
 
-When Step 2 selects Dedicated mode for a phase:
+If `~/.config/opencode/` exists on this machine: check whether all four `~/.config/opencode/agents/spdd-<phase>.md` files exist, are well-formed (parseable frontmatter, non-empty body), and each one's `<!-- spdd-agent:model-source=... -->` marker matches config.json's current flat `models` value for that phase. A file that exists but is malformed is treated as absent — never blocks or crashes.
 
-- **Claude Code:** call `Agent` with `subagent_type: "spdd-<phase>"` and `model:` taken from config.json (Step 1) — the per-invocation `model` param overrides the agent file's frontmatter fallback, keeping config.json the single source of truth for per-phase models.
-- **opencode:** call the Task tool with `subagent_type: "spdd-<phase>"`; no model field exists on the Task tool, so the model comes entirely from the agent file's own frontmatter (already checked for divergence against config.json above).
-- The prompt carries **phase context only**: the exact context listed for that phase in Steps 4–8, plus — for the canvas phase — the routing-already-decided note (complete route, so the canvas's applicability guard is skipped). The never-block rule and the report contract are **not** repeated in the prompt — the wrapper agent's own body already carries both, verbatim.
-- Report handling is identical to Step 3 below: treat whatever returns (synchronous tool result or later completion notification) as the phase's real report — never simulate or predict it — and continue the orchestration immediately once it arrives.
+If anything is missing, malformed, or stale: show one transparency line noting the gap, then ask via a real foreground `AskUserQuestion` — a side-effecting action, it writes files — whether to run `spdd-agent/assets/install-opencode-agents.sh` now (`Bash`), "yes" recommended. On acceptance, run it and report what it wrote — or, if it exits non-zero (e.g. the flat `models` key was never bootstrapped because this machine has so far only run `spdd-agent` under Claude Code), report its failure message plainly and never claim the dedicated layer was installed. Either way, the feature flow continues afterward exactly as it would have on decline. On decline, note it stays available to ask again next run, and continue. If `~/.config/opencode/` doesn't exist at all, skip this check entirely — nothing to prepare.
+
+If the current host is opencode and a phase now has (or already had) a well-formed, up-to-date agent file, Step 3 dispatches that phase to it by name instead of ad-hoc (see below).
 
 ### Step 3 — Isolated mode: phase invocation contract
 
-Applies when Step 2 did **not** select Dedicated mode for the phase being launched.
+Applies when Step 2 selected Isolated mode. For each phase:
 
-For each phase, build one subagent call: generic `subagent_type` the host provides for ad-hoc work (in Claude Code, `general-purpose`), a `model` override from the config loaded in Step 1 when the mechanism accepts one (see Step 2), and a self-contained `prompt`. The `prompt` always includes, in this order:
+- **opencode, with a well-formed and up-to-date `spdd-<phase>.md` from Step 2b:** call the Task tool with `subagent_type: "spdd-<phase>"` — the named agent's own frontmatter carries its model; never pass a `model` field (the Task tool has none). The prompt still carries the phase context (below), but skip restating the never-block rule and report contract — the named agent's own body already carries both, verbatim.
+- **Every other case** (Claude Code always; opencode with no well-formed file for this phase; any other host): generic `subagent_type` the host provides for ad-hoc work (in Claude Code, `general-purpose`; in opencode, `general`), and, unconditionally, whenever Step 2 found the mechanism accepts a model override: **`model` set to that phase's value from config.json (Step 1) — every call, no exception.** This is not a conditional step; if the mechanism accepts a model param, pass it, full stop.
+
+A self-contained `prompt` always includes the skill call (below); the named-agent dispatch case skips items 2–3 below, since the agent's own body already carries both, verbatim — every other case includes all three:
 
 1. **The skill call**: instruct the subagent to load the named phase skill (`spdd-canvas`, `spdd-design`, `spdd-implement`, or `spdd-verify`) through its own skill-loading mechanism (e.g. a `Skill` tool) and follow it — or, if it has no such mechanism, to read that skill's installed `SKILL.md` and execute it exactly — together with the exact context listed for it in Steps 4–8 and nothing more, nothing from this conversation's history. When delegating the canvas phase, additionally state that routing was already decided (complete route), so the canvas's applicability guard (its Step 2) is skipped.
 2. **The never-block rule**, verbatim:
@@ -121,11 +126,11 @@ Subagent semantics vary by host: the report may come back synchronously as the c
 
 ### Step 3-alt — Inline mode
 
-Applies when Step 2 did not select Dedicated mode for the phase, and found no subagent mechanism at all. Invoke `Skill(<phase>)` directly in the current context, with the same context scoping listed for the phase in Steps 4–8. This runs synchronously in the foreground, so `AskUserQuestion` is available for real — the never-block rule doesn't apply, and any `⚠️ Confirm:` the phase raises can be resolved immediately instead of deferred. Orchestration and checkpoints (Steps 4–8) stay the same either way; only isolation and per-phase model are lost. When the invoked phase finishes, return to this skill's next step (5, 6, 7, or 8) — the phase's Report step ends the phase, not this orchestration.
+Applies when Step 2 found no subagent mechanism at all. Invoke `Skill(<phase>)` directly in the current context, with the same context scoping listed for the phase in Steps 4–8. This runs synchronously in the foreground, so `AskUserQuestion` is available for real — the never-block rule doesn't apply, and any `⚠️ Confirm:` the phase raises can be resolved immediately instead of deferred. Orchestration and checkpoints (Steps 4–8) stay the same either way; only isolation and per-phase model are lost. When the invoked phase finishes, return to this skill's next step (5, 6, 7, or 8) — the phase's Report step ends the phase, not this orchestration.
 
 ### Step 4 — Canvas phase
 
-Launch the `canvas` phase, per Step 2's decision for this phase (Dedicated, Isolated, or Inline). Context: the user's feature description, verbatim — it isn't in any file yet.
+Launch the `canvas` phase, per Step 2's decision (Isolated or Inline). Context: the user's feature description, verbatim — it isn't in any file yet.
 
 ### Step 5 — Checkpoint gate: canvas
 
@@ -135,15 +140,15 @@ If the canvas has zero `⚠️ Confirm:` lines, set `**Status:** Confirmed` and 
 
 ### Step 6 — Design phase
 
-Launch the `design` phase, per Step 2's decision for this phase. Context: the path to the now-confirmed `canvas.md`. Apply the same checkpoint gate as Step 5 to every `⚠️ Confirm:` line across the resulting plan(s) before advancing.
+Launch the `design` phase, per Step 2's decision. Context: the path to the now-confirmed `canvas.md`. Apply the same checkpoint gate as Step 5 to every `⚠️ Confirm:` line across the resulting plan(s) before advancing.
 
 ### Step 7 — Implement phase, per plan
 
-Order the plans by their `Depends on:` field (topological order — a plan never launches before every plan it depends on has reached `Status: Implemented`, matching `spdd-implement` Step 3's dependency check). For each plan in that order, launch the `implement` phase, per Step 2's decision for this phase. Context: the path to that one plan only — not the other plans, not the canvas beyond what `spdd-implement` itself reads.
+Order the plans by their `Depends on:` field (topological order — a plan never launches before every plan it depends on has reached `Status: Implemented`, matching `spdd-implement` Step 3's dependency check). For each plan in that order, launch the `implement` phase, per Step 2's decision. Context: the path to that one plan only — not the other plans, not the canvas beyond what `spdd-implement` itself reads.
 
 ### Step 8 — Verify phase
 
-Once every plan for the change is `Status: Implemented`, launch the `verify` phase, per Step 2's decision for this phase, per plan (or once, if the change was never split). Context: the path to the plan (or canvas) being verified.
+Once every plan for the change is `Status: Implemented`, launch the `verify` phase, per Step 2's decision, per plan (or once, if the change was never split). Context: the path to the plan (or canvas) being verified.
 
 If a verify run reports a non-trivial divergence (not a cosmetic gap), reopen the relevant checkpoint: bring the finding to the user in the foreground via `AskUserQuestion`, and if it requires touching the plan or canvas, loop back to the appropriate step (5, 6, or 7) instead of forcing the divergence closed silently.
 
