@@ -44,13 +44,17 @@ them in Dedicated mode without provisioning logic living inside the feature-buil
 - WHEN this skill is considered complete
 - THEN `spdd-install/evals/evals.json` (evals 82–89) covers: fresh install, missing-config guard, idempotent resync including the tier-alias-vs-translated-id non-divergence case, opencode divergence remediation offer, missing-marker-as-divergence, `permissions.deny` merge non-destructiveness, independent per-host confirmation (declining one doesn't block the other), and target-host config section independence (opencode targets always read the flat `models` key even when running under Claude Code)
 
+**Scenario: entry points are explicit invocation or the first-run onboarding offer (carve-out, 2026-09-07)**
+- WHEN `spdd-install` runs
+- THEN it is reached only by an explicit `/spdd-install` invocation, or by `spdd-agent`'s first-run onboarding, which may offer it once — confirmation-gated — after the model bootstrap; it never auto-triggers on its own and never runs mid-flow as part of `spdd-agent`'s feature build. This supersedes the v1.15 norm "never invoked or offered from inside `spdd-agent`'s feature-build flow"; the offer fires only on a first run, the onboarding itself writes nothing, and this skill's own per-host `AskUserQuestion` confirmations remain the only write gate
+
 ---
 
 ## Entities
 
 | Name | Path | Notes |
 |------|------|-------|
-| `spdd-install` skill | `spdd-install/SKILL.md` | New. `allowed-tools: Read Write Edit Bash AskUserQuestion` — no `Agent`/delegation tool, since it never launches subagents itself. Never auto-triggers; reached only by explicit `/spdd-install` |
+| `spdd-install` skill | `spdd-install/SKILL.md` | New. `allowed-tools: Read Write Edit Bash AskUserQuestion` — no `Agent`/delegation tool, since it never launches subagents itself. Never auto-triggers; reached only by explicit `/spdd-install` or `spdd-agent`'s first-run onboarding offer (confirmation-gated, once, after the bootstrap) |
 | Guard: config.json completeness | `spdd-install/SKILL.md` (Step 1) | Reuses `spdd-agent` Step 1's six-key completeness definition exactly (`canvas`, `design`, `implement`, `verify`, `sync`, `migrate`); a hard guard, not a question — nothing to confirm until it passes |
 | Dedicated phase agents (user-level, Claude Code) | `~/.claude/agents/spdd-{canvas,design,implement,verify}.md` | Written only at runtime, confirmation-gated; outside the repo |
 | Dedicated phase agents (user-level, opencode) | `~/.config/opencode/agents/spdd-{canvas,design,implement,verify}.md` | Written only at runtime, confirmation-gated; carries `model:` + `spdd-install:model-source` marker, both derived from config.json |
@@ -76,7 +80,7 @@ them in Dedicated mode without provisioning logic living inside the feature-buil
 ## Norms
 
 - This skill never bootstraps, repairs, or migrates `~/.config/spdd/config.json` — that stays exclusively `spdd-agent/assets/model-bootstrap.md`'s job; it only reads an already-complete config.
-- Never invoked or offered from inside `spdd-agent`'s feature-build flow (Steps 0–9) — reached only by explicit `/spdd-install`, matching how `spdd-canvas`/`spdd-design`/`spdd-implement`/`spdd-verify` never auto-trigger either.
+- Reached only by explicit `/spdd-install`, or offered once — confirmation-gated — by `spdd-agent`'s first-run onboarding after the model bootstrap (carve-out accepted 2026-09-07, superseding the v1.15 "never invoked or offered from inside `spdd-agent`'s feature-build flow" rule); it never auto-triggers on its own and never runs mid-flow, matching how `spdd-canvas`/`spdd-design`/`spdd-implement`/`spdd-verify` never auto-trigger either.
 - The one skill in the repo allowed to read another skill's `assets/` files directly (`spdd-{canvas,design,implement,verify}/assets/agent-*.md`) — cross-skill provisioning is its entire purpose.
 - The `spdd-install:model-source` marker, not the translated `model:` field, is always the value compared for divergence — both here and in `spdd-agent` Step 2 — so a raw-string comparison never needs the alias→id table repeated elsewhere.
 - A `permissions.deny` merge (or any resync write) never removes or alters an entry it didn't add.

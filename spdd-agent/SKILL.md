@@ -1,12 +1,12 @@
 ---
 name: spdd-agent
-description: Builds a new feature end-to-end from a single plain-language description — runs canvas → design → implement → verify automatically, pausing only on required confirmations. Use when the user describes a new feature, or asks to build/add/implement something, without naming a specific /spdd-* command. Also handles requests to view or change the per-phase model configuration.
+description: Builds a new feature end-to-end from a single plain-language description — runs canvas → design → implement → verify automatically, pausing only on required confirmations. On a machine's first run it walks a short onboarding (flow guide + model bootstrap) and offers, confirmation-gated, to invoke /spdd-install for the optional dedicated per-phase subagent layer. Use when the user describes a new feature, or asks to build/add/implement something, without naming a specific /spdd-* command. Also handles requests to view or change the per-phase model configuration.
 license: Apache-2.0
 compatibility: Works with any agent. Subagent isolation requires any host mechanism that can launch a subagent (e.g. Claude Code's `Agent` tool, or opencode's Task tool with a `subagent_type`); per-phase model selection additionally requires that mechanism to accept a model override.
 allowed-tools: Read Write Edit Bash AskUserQuestion Agent
 metadata:
   author: edezacas
-  version: "1.15"
+  version: "1.16"
 ---
 
 ## Instructions
@@ -20,6 +20,8 @@ Whenever this skill resolves a choice on its own — without a blocking question
 ```
 [automatic decision] <what it decided> — <why>
 ```
+
+If the first-run onboarding ([first-run.md](assets/first-run.md)) ran earlier in this same run, precede each phase launch (Steps 4, 6, 7, 8) with one short line in the conversation's language saying what the phase does and what will come back — the per-phase one-liners templated in that asset — alongside the `[automatic decision]` lines above, on the first run only.
 
 Reserve `⚠️ Confirm:` — a real, foreground question that blocks — for:
 
@@ -79,7 +81,7 @@ This determines the **applicable section**: `claude.models` under Claude Code, t
 
 **Fast path.** If complete per the check above: read the six values from the applicable section directly. For the ordinary feature flow, proceed straight to Step 2. For an explicit config request that only wants to *view* the current values, report those six values and stop — do not proceed to Step 2. Either way, `spdd-agent/assets/model-bootstrap.md` is never opened and no `AskUserQuestion` call is made.
 
-**Everything else:** read [model-bootstrap.md](assets/model-bootstrap.md) and follow the flow documented there for the specific case (first-run bootstrap, repair, migration, malformed/unparseable, or explicit value change) — it owns every `AskUserQuestion` mechanic and every config write for these cases, so nothing here repeats it. Once it finishes: for the ordinary feature flow, proceed to Step 2; for an explicit config request, report the resulting config and stop — do not proceed to Step 2.
+**Everything else:** if the classification above was the file-doesn't-exist case (first run), read [first-run.md](assets/first-run.md) and follow it — it hands off to [model-bootstrap.md](assets/model-bootstrap.md)'s "First-run bootstrap" section; every other case (repair, migration, malformed/unparseable, explicit value change) reads [model-bootstrap.md](assets/model-bootstrap.md) directly, exactly as before. Those assets own every `AskUserQuestion` mechanic and every config write for their cases, so nothing here repeats them. Once Step 1 finishes: for the ordinary feature flow, proceed to Step 2; for an explicit config request, report the resulting config and stop — do not proceed to Step 2.
 
 ### Step 2 — Detect subagent support
 

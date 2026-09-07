@@ -1,17 +1,17 @@
 ---
 name: spdd-install
-description: Install or resync the 8 dedicated per-phase SPDD subagent files (Claude Code and opencode) that spdd-agent uses in Dedicated mode, plus the Claude Code auto-delegation permissions.deny entries. Invoked manually via /spdd-install only — never auto-triggers, never offered or invoked from inside spdd-agent's feature-build flow.
+description: Install or resync the 8 dedicated per-phase SPDD subagent files (Claude Code and opencode) that spdd-agent uses in Dedicated mode, plus the Claude Code auto-delegation permissions.deny entries. Reached only by explicit /spdd-install invocation, or offered once — confirmation-gated — by spdd-agent's first-run onboarding; never auto-triggers on its own, never invoked mid-flow.
 license: Apache-2.0
 compatibility: Works with any agent. Installs Claude Code agent files (`~/.claude/agents/`) and/or opencode agent files (`~/.config/opencode/agents/`) depending on which host(s) are present; the `permissions.deny` merge step is Claude Code only. Requires `~/.config/spdd/config.json` to already be complete — this skill never bootstraps it.
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.1"
+  version: "1.2"
 ---
 
 ## Instructions
 
-This skill provisions the optional dedicated per-phase subagent layer that `spdd-agent` uses in Dedicated mode. It never runs as part of `spdd-agent`'s feature-build flow — it is reached only by explicit `/spdd-install` invocation.
+This skill provisions the optional dedicated per-phase subagent layer that `spdd-agent` uses in Dedicated mode. It is reached only by an explicit `/spdd-install` invocation, or by `spdd-agent`'s first-run onboarding, which may offer it once — confirmation-gated — after the model bootstrap; it never auto-triggers on its own and never runs mid-flow as part of `spdd-agent`'s feature build.
 
 ### Step 1 — Guard: config.json must already be complete
 

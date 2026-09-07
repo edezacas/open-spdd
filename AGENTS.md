@@ -1,7 +1,7 @@
 # open-spdd
 
 ## Overview
-Structured Prompt-Driven Development (SPDD) skills. Each skill is a directory with a `SKILL.md` file following the agentskills.io format. `spdd-agent` orchestrates the full canvas → design → implement → verify flow from a single feature description; there is no separate agent-file layer for any host — orchestration lives entirely in `spdd-agent/SKILL.md`, which asks the host for an ad-hoc subagent per phase when the host supports launching one, and runs the phase inline otherwise.
+Structured Prompt-Driven Development (SPDD) skills. Each skill is a directory with a `SKILL.md` file following the agentskills.io format. `spdd-agent` orchestrates the full canvas → design → implement → verify flow from a single feature description; orchestration lives in `spdd-agent/SKILL.md`, which asks the host for an ad-hoc subagent per phase when the host supports launching one and runs the phase inline otherwise — plus an optional dedicated per-phase agent-file layer installed via `/spdd-install`, offered once, confirmation-gated, at `spdd-agent`'s first run.
 
 ## Stack
 - Skills: Markdown (`SKILL.md`) — no build step, agentskills.io format
@@ -10,20 +10,21 @@ Structured Prompt-Driven Development (SPDD) skills. Each skill is a directory wi
 
 | Skill | When to activate |
 |-------|-----------------|
-| `spdd-agent` | User describes a new feature in plain language, without naming a specific `/spdd-*` command — the only skill that auto-triggers the canvas → design → implement → verify flow |
+| `spdd-agent` | User describes a new feature in plain language, without naming a specific `/spdd-*` command — the only skill that auto-triggers the canvas → design → implement → verify flow. On a machine's first run it also walks a short onboarding (flow guide + model bootstrap) and offers, confirmation-gated, to run `/spdd-install` for the optional dedicated layer |
 | `spdd-canvas` | Never auto-triggers on its own. Invoked manually via `/spdd-canvas`, or delegated by `spdd-agent` as the first phase of its flow |
 | `spdd-design` | Never auto-triggers on its own. Invoked manually via `/spdd-design`, or delegated by `spdd-agent`, after a canvas is confirmed |
 | `spdd-implement` | Never auto-triggers on its own. Invoked manually via `/spdd-implement`, or delegated by `spdd-agent`, once a plan exists |
 | `spdd-verify` | Never auto-triggers on its own. Invoked manually via `/spdd-verify`, or delegated by `spdd-agent`, once implementation is done |
 | `spdd-sync` | User refactored code that already has a living spec, outside the SPDD flow, and the spec no longer matches the code's shape — auto-triggers independently |
 | `spdd-migrate` | Project still has canvases under the old `docs/prompts/` layout or feature docs under `docs/features/` and needs a one-time move to `spdd/` — auto-triggers independently |
-| `spdd-install` | Never auto-triggers on its own. Invoked manually via `/spdd-install` to install or resync the dedicated per-phase subagent files — never offered or triggered from inside `spdd-agent`'s feature-build flow |
+| `spdd-install` | Never auto-triggers on its own. Reached by explicit `/spdd-install` to install or resync the dedicated per-phase subagent files, or offered once (confirmation-gated) by `spdd-agent`'s first-run onboarding — never invoked mid-flow |
 
 ## Structure
 ```
 spdd-agent/SKILL.md                   # orchestrates canvas → design → implement → verify from one feature description
 spdd-agent/assets/model-bootstrap.md  # first-run/repair/migration/malformed model-config flows + JSON shape examples, read only when Step 1's completeness check finds the applicable section incomplete
-spdd-agent/evals/evals.json           # routing, config request, bootstrap, invalid-config repair, never-block rule, checkpoint gate, dependency order, divergence reopen, inline fallback, isolated-without-model-override, malformed shape, fast path, parse failure
+spdd-agent/assets/first-run.md        # first-run onboarding — guide, bootstrap hand-off, dedicated-layer offer + spdd-install invocation fallbacks, per-phase one-liners; read only when Step 1's completeness check classifies the run as first run
+spdd-agent/evals/evals.json           # routing, config request, bootstrap, invalid-config repair, never-block rule, checkpoint gate, dependency order, divergence reopen, inline fallback, isolated-without-model-override, malformed shape, fast path, parse failure, first-run onboarding
 spdd-canvas/SKILL.md                  # REASONS canvas generator — /spdd-canvas
 spdd-canvas/assets/template-reasons.md
 spdd-canvas/assets/template-norms.md  # starting template for a target project's spdd/norms.md
