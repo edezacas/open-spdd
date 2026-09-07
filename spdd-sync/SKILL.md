@@ -5,16 +5,16 @@ license: Apache-2.0
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.3"
+  version: "1.4"
 ---
 
 ## Instructions
 
 ### Step 1 — Locate the scope
 
-If a domain or specific files were named, use those. Otherwise, infer the scope from the current working tree (`git status`/`git diff`) — the typical trigger is "I just refactored, sync the spec."
+Use the named domain or files if given. Otherwise infer scope from the working tree (`git status`/`git diff`) — the typical trigger is "I just refactored, sync the spec."
 
-If `spdd/specs/<domain>.md` doesn't exist for the inferred scope, stop: this command is not a substitute for the normal flow. Tell the user to go through `spdd-canvas` first.
+If `spdd/specs/<domain>.md` doesn't exist for that scope, stop — this isn't a substitute for the normal flow. Tell the user to run `spdd-canvas` first.
 
 ### Step 2 — Read the spec and the code
 
@@ -22,20 +22,25 @@ Read `spdd/specs/<domain>.md` in full, then the current code at every path its S
 
 ### Step 3 — Compare code against spec
 
-Look for: renamed or moved files, functions/identifiers named in Operations that no longer exist under that name, Entities whose fields changed, new files that aren't listed, files listed that no longer exist.
+Look for:
+
+- Renamed or moved files.
+- Functions/identifiers named in Operations that no longer exist under that name.
+- Entities whose fields changed.
+- New files not listed, or listed files that no longer exist.
 
 ### Step 4 — Behavior guardrail
 
-If anything found in Step 3 suggests a change in observable behavior — not just shape — do **not** touch the Requirements section. Stop and tell the user explicitly this isn't a sync case: behavior changes need a new canvas via `spdd-canvas`, not a sync. This is the core safeguard of this skill — it must never rewrite behavior silently.
+Anything from Step 3 that's a change in observable behavior, not just shape → do not touch Requirements. Stop and tell the user this isn't a sync case: behavior changes need a new canvas via `spdd-canvas`. Never rewrite behavior silently — that's this skill's core safeguard.
 
 ### Step 5 — Update the spec
 
-Update only Entities, Structure, Operations, and Norms in `spdd/specs/<domain>.md` to match the code's current shape. Requirements (the `WHEN/THEN` scenarios) stay untouched — they're the behavior contract, not the implementation shape.
+Update only Entities, Structure, Operations, and Norms to match the code's current shape. Requirements (`WHEN/THEN` scenarios) stay untouched — they're the behavior contract, not the implementation shape.
 
-If it's genuinely unclear whether something is a pure refactor or a behavior change, don't guess: mark it with `⚠️ Confirm:` directly in the spec and ask the user.
+Genuinely unclear whether something is a refactor or a behavior change → don't guess: mark it `⚠️ Confirm:` in the spec and ask.
 
-> **Language note:** Write all new spec text added in Step 5 (Entities, Structure, Operations, Norms updates) in English, regardless of the conversation's language.
+> **Language note:** Write all new spec text in English, regardless of the conversation's language.
 
 ### Step 6 — Report
 
-Show a diff-style summary: what was updated in the spec, what was left alone, and any `⚠️ Confirm:` lines added.
+Show what was updated in the spec, what was left alone, and any `⚠️ Confirm:` lines added.

@@ -5,35 +5,38 @@ license: Apache-2.0
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "1.6"
+  version: "1.7"
 ---
 
 ## Instructions
 
 ### Step 1 — Locate the canvas
 
-If a change folder or canvas path was provided, use that. Otherwise, list the directories in `spdd/changes/` matching `SPDD-*`, sorted by name (most recent first).
+Use the given change folder or canvas path if provided. Otherwise list `spdd/changes/SPDD-*`, sorted by name, most recent first.
 
-If empty, stop and tell the user to run `spdd-canvas` first. If multiple exist and no argument was given, ask which one to use.
+- None found → stop, tell the user to run `spdd-canvas` first.
+- Multiple found, no argument given → ask which one.
 
 ### Step 2 — Check for existing plans
 
-If a `plans/` folder already exists for this change, do not regenerate it silently:
+If `plans/` already exists for this change:
 
-- If every existing plan is still `Status: Draft`, it's safe to ask the user whether to regenerate (overwrite) or leave them as-is.
-- If any existing plan is `Confirmed`, `Implemented`, or `Verified`, stop and warn explicitly — regenerating now would discard that progress. Only proceed if the user explicitly confirms, and even then only overwrite the specific plans they name, never a blanket overwrite of plans with real progress.
+- Every plan `Status: Draft` → ask whether to regenerate or leave as-is.
+- Any plan `Confirmed`, `Implemented`, or `Verified` → warn explicitly that regenerating discards progress. Proceed only on explicit confirmation, and only overwrite the plans named — never a blanket overwrite.
 
 ### Step 3 — Read the canvas
 
-Read `canvas.md` in the change folder in full.
+Read `canvas.md` in full.
 
-### Step 4 — Analyze for partition boundaries
+### Step 4 — Find partition boundaries
 
-Look at Entities, Structure, and Operations together to find natural boundaries: which Operations depend on which Entities, and which Structure paths belong to which module. A safe partition is one where each group's Structure paths don't overlap with another group's, except for explicitly shared files.
+Cross-reference Entities, Structure, and Operations: which Operations touch which Entities, which Structure paths belong to which module. A safe partition has non-overlapping Structure paths per group, except explicitly shared files.
 
-### Step 5 — Decide: one plan or many
+### Step 5 — One plan or many
 
-**Do not force a split.** If the work is intrinsically sequential (later steps depend on earlier ones touching the same core files) or everything funnels through one shared module, emit a single plan covering the whole canvas. Only split when the groups found in Step 4 are genuinely separable. If every group found in Step 4 applies the same Operation type homogeneously to files of the same kind, emit a single plan with one row per file instead of splitting — even if their Structure paths don't overlap. Reserve real splitting for groups that differ in Operation type, or that are meant to be handed to different agents/people.
+Default to one plan. Split only when groups are genuinely separable — not intrinsically sequential, not funneled through one shared module — **and** differ in Operation type or are meant for different agents/people.
+
+Same Operation type applied homogeneously across files → one plan, one row per file, even without Structure overlap.
 
 ### Step 6 — Read the base template
 
@@ -43,14 +46,14 @@ Read [template-plan.md](assets/template-plan.md).
 
 > **Language note:** Write all new plan content (names, headings, prose) in English, regardless of the conversation's language.
 
-For each group (or the single plan), fill the template read in Step 6 and write it to `spdd/changes/SPDD-slug/plans/plan-NN-<name>.md`. Keep the template's `../canvas.md` link as-is — it's a valid relative path from any `plans/` folder — and fill in:
+For each group (or the single plan), fill the template and write to `spdd/changes/SPDD-slug/plans/plan-NN-<name>.md`. Keep `../canvas.md` as-is. Fill in:
 
-- The subset of Operations that belong to this plan.
+- The Operations subset this plan owns.
 - The Entities and Structure paths this plan owns.
-- `Depends on:` and `Shared touchpoints:` — fill per the template's guidance (read in Step 6).
+- `Depends on:` and `Shared touchpoints:` per the template.
 
-Do not duplicate Requirements, Norms, or Safeguards in each plan — those stay in the parent `canvas.md` and `spdd-implement` reads both.
+Do not duplicate Requirements, Norms, or Safeguards — they stay in `canvas.md`; `spdd-implement` reads both.
 
 ### Step 8 — Report
 
-Show the plan breakdown (or the decision to keep it as one plan and why), the dependency graph between plans, and any `⚠️ Confirm:` lines, before any implementation starts.
+Show the plan breakdown (or why it stayed one plan), the dependency graph, and any `⚠️ Confirm:` lines — before implementation starts.

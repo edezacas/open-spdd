@@ -6,20 +6,20 @@ compatibility: Works with any agent. Step 9 (SPDD hook and subagent cache TTL se
 allowed-tools: Read Write Edit Bash AskUserQuestion
 metadata:
   author: edezacas
-  version: "2.2"
+  version: "2.3"
 ---
 
 ## Instructions
 
 ### Step 1 — Locate the change and plan
 
-If a change folder or plan path was provided, use that. Otherwise, list the directories in `spdd/changes/` matching `SPDD-*`, sorted by name (most recent first).
+Use the given change folder or plan path if provided. Otherwise list `spdd/changes/SPDD-*`, sorted by name, most recent first.
 
-If the change has a `plans/` folder and no specific plan was named, ask which plan to verify.
+Change has a `plans/` folder, no plan named → ask which plan to verify.
 
 ### Step 2 — Read the scope
 
-Read the chosen plan and `canvas.md` in full — Requirements, Norms, and Safeguards live in the canvas and apply to every plan (with no `plans/` folder, the canvas alone is the scope) — plus the current code for every path they touch.
+Read the chosen plan and `canvas.md` in full — Requirements, Norms, and Safeguards live in the canvas and apply to every plan (no `plans/` folder → the canvas alone is the scope) — plus the current code for every path they touch.
 
 ### Step 3 — Structural check
 
@@ -31,9 +31,12 @@ Confirm, for the scope being verified:
 
 ### Step 4 — Put the implementation to the test
 
-For every Safeguards edge case (`WHEN/THEN` scenario) in scope that isn't already covered by an existing test, write a test targeting exactly that scenario, then run it. Run the full test suite for the affected area.
+For every in-scope Safeguards edge case (`WHEN/THEN` scenario) not already covered by an existing test: write a test targeting exactly that scenario, run it. Run the full test suite for the affected area.
 
-If the scope includes its own eval suite (e.g. a `SKILL.md` with `evals/evals.json`), run it or — in a foreground session — ask via `AskUserQuestion` whether a lighter diff-based check is acceptable. In background (no `AskUserQuestion`), default to running the suite if the scope is non-trivial, or leave a `⚠️ Confirm:` note if running it isn't feasible — never silently treat a diff read as equivalent to re-running the evals.
+Scope includes its own eval suite (e.g. a `SKILL.md` with `evals/evals.json`):
+
+- Foreground → run it, or ask via `AskUserQuestion` whether a lighter diff-based check is acceptable.
+- Background (no `AskUserQuestion`) → default to running the suite if the scope is non-trivial, else leave a `⚠️ Confirm:` note if running it isn't feasible. Never treat a diff read as equivalent to re-running the evals.
 
 ### Step 5 — Report
 
@@ -41,55 +44,48 @@ Report pass/fail per section with concrete gaps — file, expected behavior, wha
 
 ### Step 6 — Mark status
 
-If everything in Step 3–4 passes: set `Status: Verified` on the plan just checked (or on `canvas.md` directly if there is no `plans/` folder).
-
-If something fails: report the gaps, leave the plan/canvas as-is in `spdd/changes/`, do not archive anything, stop here.
+- Step 3–4 all pass → set `Status: Verified` on the plan just checked (or `canvas.md` directly, no `plans/` folder).
+- Something fails → report the gaps, leave the plan/canvas as-is in `spdd/changes/`, don't archive anything, stop here.
 
 ### Step 7 — Diff-to-canvas check
 
-Before folding any result back to `spdd/specs/<domain>.md`, verify that the actual code changes align with the canvas and plan:
+Before folding back to `spdd/specs/<domain>.md`, verify the actual code changes align with the canvas and plan:
 
-1. **Obtain the real diff:**
-   - If the scope is not yet committed: run `git diff <files in scope>` to get the working tree changes.
-   - If already committed: use `git log -p --stat <files in scope>` to retrieve the commit changes.
+1. **Obtain the real diff.** Not yet committed → `git diff <files in scope>`. Already committed → `git log -p --stat <files in scope>`.
 
-2. **Compare the diff against Operations:**
-   - For each Operation listed in the scope (canvas and plan), confirm there is corresponding code in the diff.
-   - If an Operation has no corresponding implementation: **stop and report** the gap (e.g., "Canvas declares Operation: `X` → Code real: no changes in diff").
+2. **Compare the diff against Operations.** Each Operation in scope needs corresponding code in the diff. Missing → **stop and report** (e.g., "Canvas declares Operation: `X` → Code real: no changes in diff").
 
-3. **Validate the diff's scope:**
-   - No file or module touched in the diff may exist outside Structure, Shared touchpoints, or Operations of the canvas/plan.
-   - **Exception:** Test files created by Step 4 (Put the implementation to the test) during *this same* verification are exempt — they are a verification byproduct, not part of the original implementation diff.
-   - If a file falls outside declared scope: **stop and report** (e.g., "Canvas declares: [list of paths] → Code real: also includes `<file>`, undeclared").
+3. **Validate the diff's scope.** No file/module in the diff may exist outside Structure, Shared touchpoints, or Operations of the canvas/plan. Exception: test files this same verification created in Step 4 — a verification byproduct, not original implementation. A file outside declared scope → **stop and report** (e.g., "Canvas declares: [paths] → Code real: also includes `<file>`, undeclared").
 
-4. **Validate against global norms:**
-   - If `spdd/norms.md` (project root) exists, check the diff against every rule it states (Architecture, Security, Code conventions, Non-negotiable decisions) — not just the canvas's own Norms.
-   - If the diff violates a stated norm, treat it exactly like a canvas discrepancy: **stop and report** (e.g., "spdd/norms.md states: `<rule>` → Code real: `<file>` violates it").
+4. **Validate against global norms.** `spdd/norms.md` (project root) exists → check the diff against every rule it states (Architecture, Security, Code conventions, Non-negotiable decisions), not just the canvas's own Norms. Violation → **stop and report** like a canvas discrepancy (e.g., "spdd/norms.md states: `<rule>` → Code real: `<file>` violates it").
 
-5. **Handle discrepancies:**
-   - **In foreground (interactive session with user turn):** Use `AskUserQuestion` to ask whether the discrepancy is intentional. If confirmed, continue to Step 8 and note the accepted discrepancy in the fold. If not confirmed or unclear: revert the `Status: Verified` set in Step 6 back to its previous value (the plan/canvas was never actually fully verified), stop without folding, and report the concrete gap.
-   - **In background (subagent under spdd-agent, no AskUserQuestion available):** Treat the discrepancy as a Step 6 failure — stop the process (never block waiting for a response), revert the `Status: Verified` set in Step 6 back to its previous value, do not fold or archive, report the concrete gap, and append a line `⚠️ Confirm: <discrepancy detected during Diff-to-canvas check — review and confirm whether intentional>` to the plan/canvas for the foreground checkpoint in `spdd-agent` to resolve afterward.
+5. **Handle discrepancies.**
+   - Foreground → `AskUserQuestion` whether it's intentional. Confirmed → continue to Step 8, note the accepted discrepancy in the fold. Not confirmed or unclear → revert the `Status: Verified` set in Step 6, stop without folding, report the concrete gap.
+   - Background (subagent under `spdd-agent`, no `AskUserQuestion`) → treat as a Step 6 failure: stop (never block waiting for a response), revert the `Status: Verified` set in Step 6, don't fold or archive, report the concrete gap, append `⚠️ Confirm: <discrepancy detected during Diff-to-canvas check — review and confirm whether intentional>` to the plan/canvas for `spdd-agent`'s foreground checkpoint to resolve.
 
-If everything passes (diff is coherent or user confirms discrepancies), continue to Step 8.
+Everything passes (diff coherent, or discrepancies confirmed) → continue to Step 8.
 
-> **Language note:** Write all new prose added during this skill's steps (discrepancy notes, `⚠️ Confirm:` lines, fold-back annotations) in English, regardless of the conversation's language.
+> **Language note:** Write all new prose added by this skill (discrepancy notes, `⚠️ Confirm:` lines, fold-back annotations) in English, regardless of the conversation's language.
 
 ### Step 8 — Fold back and archive (canvas level, not plan level)
 
-Only when *every* plan under this change is `Status: Verified` (or immediately, if the change never had a `plans/` split):
+Only when every plan under this change is `Status: Verified` (or immediately, no `plans/` split):
 
-1. Fold the canvas's Requirements, Entities, Operations, and Norms into `spdd/specs/<domain>.md` — create the file if it doesn't exist. Use the NEW/MODIFIED markers already present in the canvas's Requirements to decide whether to add new scenarios or replace existing ones; remove anything the canvas marked as replaced. Entities, Operations, and Norms don't carry NEW/MODIFIED markers — before appending a row, check whether one with the same name/identifier already exists in that section; if it does, update it in place instead of adding a duplicate. Only append when the name/identifier is genuinely new to the domain.
-2. **Integrity check — before reporting success:** inspect the resulting `spdd/specs/<domain>.md` for two defects: (a) orphan unresolved `> ⚠️ Confirm:` blockquotes left behind by the fold, and (b) duplicated `##` section headings — the same heading text appearing more than once in the file (e.g. two `## Operations` sections). If either is found, report each finding concretely (file, heading or line), fix the spec, and re-run the check: the "folded" claim is blocked until the spec passes both checks, and the change folder is not archived in the meantime.
-3. Move the entire change folder from `spdd/changes/` to `spdd/archive/`.
+1. Fold the canvas's Requirements, Entities, Operations, and Norms into `spdd/specs/<domain>.md` — create it if absent. Requirements: use the canvas's NEW/MODIFIED markers to add or replace scenarios; remove anything marked replaced. Entities/Operations/Norms carry no such markers — check for an existing row with the same name/identifier first and update it in place; only append when genuinely new to the domain.
+2. **Integrity check, before reporting success.** Inspect the resulting `spdd/specs/<domain>.md` for: (a) orphan unresolved `> ⚠️ Confirm:` blockquotes left by the fold, (b) duplicated `##` section headings (e.g. two `## Operations` sections). Either found → report it concretely (file, heading/line), fix the spec, re-run the check. "Folded" is blocked until both checks pass; don't archive the change folder in the meantime.
+3. Move the change folder from `spdd/changes/` to `spdd/archive/`.
 
-While any plan is still pending, do not fold or archive anything — a partially implemented feature should never be described as done in the living spec.
+Any plan still pending → fold or archive nothing. A partially implemented feature is never described as done in the living spec.
 
 ### Step 9 — Ensure the SPDD hook and subagent cache TTL are present *(Claude Code only)*
 
-> Skip this step if you are not running as Claude Code.
+> Skip this step if not running as Claude Code.
 
-Check whether `.claude/settings.local.json` already contains the SPDD guard hook and the subagent cache TTL setting — grep it for `SPDD` and for `"subagentPromptCacheTtl"`. For whichever is **missing**, ask the user whether to add it (one combined `AskUserQuestion` if both are missing); if confirmed, read [hook-setup.md](assets/hook-setup.md) for the exact JSON and merge it into `.claude/settings.local.json`.
+Grep `.claude/settings.local.json` for `SPDD` and for `"subagentPromptCacheTtl"`. For whichever is missing:
+
+- Ask the user whether to add it (one combined `AskUserQuestion` if both are missing).
+- If confirmed, read [hook-setup.md](assets/hook-setup.md) for the exact JSON and merge it in.
 
 ### Step 10 — Report back
 
-Summarize what was verified, tests added, and — if the change was fully verified — the spec files updated and the new path under `spdd/archive/`.
+Summarize what was verified, tests added, and — if fully verified — the spec files updated and the new path under `spdd/archive/`.
