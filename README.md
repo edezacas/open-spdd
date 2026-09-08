@@ -1,5 +1,8 @@
 # open-spdd
 
+> [!IMPORTANT]
+> **This project is no longer maintained.** Development has moved to [antz](https://github.com/edezacas/antz). New features, fixes, and updates happen there — this repository is kept for reference only.
+
 Structured Prompt-Driven Development (SPDD) skills in the [agentskills.io](https://agentskills.io) format. Work with Claude Code, OpenAI Codex, VS Code Copilot, and any compatible agent.
 
 ## Why
